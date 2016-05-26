@@ -49,16 +49,22 @@ class OneMoveLookahead(BaseStrategy):
     def _suggest_move(self, board):
         moves = board.possible_moves()
         strategy = max if board.player1turn else min
-
-        return strategy(moves, key=lambda m: self.value(board.update(m)))
+        moves_with_valuation = [
+            (self.value(board.update(move)), move)
+            for move in moves
+        ]
+        return strategy(moves_with_valuation)[1]
 
 class MinMaxPlayer(BaseStrategy):
     def _suggest_move(self, board, MAX_DEPTH=4):
         moves = board.possible_moves()
         random.shuffle(moves)
         strategy = max if board.player1turn else min
-        return strategy(moves,
-            key=lambda move: self.minimax(board.update(move), MAX_DEPTH))
+        moves_with_valuation = [
+            (self.minimax(board.update(move), MAX_DEPTH), move)
+            for move in moves
+        ]
+        return strategy(moves_with_valuation)[1]
 
     def minimax(self, board, depth):
         if depth == 0:
@@ -71,7 +77,11 @@ class MinMaxPlayer(BaseStrategy):
             return self.value(board)
 
         strategy = max if board.player1turn else min
-        return strategy(self.minimax(board.update(move), depth-1) for move in board.possible_moves())
+        moves_with_valuation = [
+            (self.minimax(board.update(move), depth-1), move)
+            for move in board.possible_moves()
+        ]
+        return strategy(moves_with_valuation)[0]
 
 class MCTS(BaseStrategy):
     pass
