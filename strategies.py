@@ -1,5 +1,11 @@
 import random
 
+def DEFAULT_VALUE_FUNC(board):
+    if board.player1wins: return 1
+    if board.player2wins: return -1
+    return 0
+
+
 class BaseStrategy(object):
     '''
     Takes in a board implementing the following interface
@@ -10,6 +16,9 @@ class BaseStrategy(object):
         @property player1wins(self) => bool
         @property player2wins(self) => bool
     '''
+    def __init__(self, value_f=DEFAULT_VALUE_FUNC):
+        'Override the default value function to get better evaluations'
+        self.value = value_f
 
     def suggest_move(self, board):
         if not board.possible_moves():
@@ -43,11 +52,6 @@ class OneMoveLookahead(BaseStrategy):
 
         return strategy(moves, key=lambda m: self.value(board.update(m)))
 
-    def value(self, board):
-        if board.player1wins: return 1
-        if board.player2wins: return -1
-        return 0
-
 class MinMaxPlayer(BaseStrategy):
     def _suggest_move(self, board, MAX_DEPTH=4):
         moves = board.possible_moves()
@@ -58,21 +62,16 @@ class MinMaxPlayer(BaseStrategy):
 
     def minimax(self, board, depth):
         if depth == 0:
-            return self.heuristic_value(board)
+            return self.value(board)
         if board.player1wins: return 1
         if board.player2wins: return -1
 
         possible_moves = board.possible_moves()
         if not possible_moves:
-            return self.heuristic_value(board)
+            return self.value(board)
 
         strategy = max if board.player1turn else min
         return strategy(self.minimax(board.update(move), depth-1) for move in board.possible_moves())
-
-    def heuristic_value(self, board):
-        if board.player1wins: return 1
-        if board.player2wins: return -1
-        return 0
 
 class MCTS(BaseStrategy):
     pass
