@@ -67,10 +67,8 @@ class MinMaxPlayer(BaseStrategy):
         return strategy(moves_with_valuation)[1]
 
     def minimax(self, board, depth):
-        if depth == 0:
+        if depth == 0 or board.player1wins or board.player2wins:
             return self.value(board)
-        if board.player1wins: return 1
-        if board.player2wins: return -1
 
         possible_moves = board.possible_moves()
         if not possible_moves:
