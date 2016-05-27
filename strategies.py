@@ -81,6 +81,31 @@ class MinMaxPlayer(BaseStrategy):
         ]
         return strategy(moves_with_valuation)[0]
 
+class NegamaxABPlayer(BaseStrategy):
+    def _suggest_move(self, board, MAX_DEPTH=6):
+        moves = board.possible_moves()
+        random.shuffle(moves)
+        moves_with_valuation = [
+            (-self.negamax(board.update(move), float('-inf'), float('inf'), MAX_DEPTH), move)
+            for move in moves
+        ]
+        return max(moves_with_valuation)[1]
+
+    def negamax(self, board, alpha, beta, depth):
+        inverted = 1 if board.player1turn else -1
+        if depth == 0 or board.player1wins or board.player2wins:
+            return inverted * self.value(board)
+
+        moves = board.possible_moves()
+        best_value_sofar = float('-inf')
+        for move in moves:
+            value = -self.negamax(board.update(move), -beta, -alpha, depth-1)
+            best_value_sofar = max(value, best_value_sofar)
+            alpha = max(alpha, value)
+            if alpha > beta:
+                break
+        return best_value_sofar
+
 class MCTS(BaseStrategy):
     pass
 
@@ -89,4 +114,5 @@ AVAILABLE_STRATEGIES = {
     'random': RandomPlayer(),
     'onemove-lookahead': OneMoveLookahead(),
     'minimax': MinMaxPlayer(),
+    'minimax-optimized': NegamaxABPlayer()
 }
