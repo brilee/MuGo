@@ -2,12 +2,12 @@ import unittest
 from tictactoe import ALL_POSITIONS, load_board
 
 class TestTicTacToe(unittest.TestCase):
-    def test_available_moves(self):
+    def test_possible_moves(self):
         t = load_board('___ ___ ___', True)
-        self.assertEqual(t.available_moves(), ALL_POSITIONS)
+        self.assertEqual(t.possible_moves(), ALL_POSITIONS)
 
         t = load_board('XXX ___ ___', True)
-        self.assertEqual(t.available_moves(), 'b1 b2 b3 c1 c2 c3'.split())
+        self.assertEqual(t.possible_moves(), 'b1 b2 b3 c1 c2 c3'.split())
 
     def test_win_conditions(self):
         t = load_board('_X_ OXO _XO', True)
