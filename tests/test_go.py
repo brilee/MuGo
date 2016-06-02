@@ -15,9 +15,10 @@ MANUAL_EMPTY_BOARD = '''
 
 
 class TestGoBoard(unittest.TestCase):
-    def test_empty_board(self):
+    def test_load_board(self):
         self.assertEqual(len(go.EMPTY_BOARD), (go.W * (go.W + 1)))
         self.assertEqual(go.EMPTY_BOARD, MANUAL_EMPTY_BOARD)
+        self.assertEqual(go.EMPTY_BOARD, go.load_board('.' * go.N ** 2))
 
     def test_parsing(self):
         self.assertEqual(go.parse_coords('A' + str(go.N)), go.W)

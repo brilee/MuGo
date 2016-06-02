@@ -1,3 +1,5 @@
+import re
+
 N = 9
 W = N + 1
 # Represent a board as a string, with '.' empty, 'X' to play, 'x' other player.
@@ -15,12 +17,17 @@ W = N + 1
 # 2....\n
 # 1....
 
+COLUMNS = 'ABCDEFGHJKLMNOPQRST'
+
 EMPTY_BOARD = '\n'.join(
     [' ' * N] + 
     ['.' * N for i in range(N)] + 
     [' ' * W])
 
-COLUMNS = 'ABCDEFGHJKLMNOPQRST'
+def load_board(string):
+    string = re.sub(r'[^xX\.]+', '', string)
+    assert len(string) == N ** 2, "Board to load didn't have right dimensions"
+    return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
 
 def parse_coords(s):
     if s == 'pass':
