@@ -62,7 +62,6 @@ def update_groups(board, existing_groups, c):
     assert move_color in 'xX'
     move_neighbors = neighbors(c)
     adjacent_stones = [n for n in move_neighbors if board[n] == move_color]
-    new_liberties = set(n for n in move_neighbors if board[n] == '.')
 
     updated_groups = []
     groups_to_merge = []
@@ -72,15 +71,13 @@ def update_groups(board, existing_groups, c):
         else:
             updated_groups.append(g)
 
-    if groups_to_merge:
-        new_stones = set([c])
-        new_liberties = new_liberties
-        for g in groups_to_merge:
-            new_stones = new_stones | g.stones
-            new_liberties = new_liberties | g.liberties
-        new_liberties.remove(c)
-        updated_groups.append(Group(stones=new_stones, liberties=new_liberties))
-    else:
-        updated_groups.append(Group(stones=set([c]), liberties=new_liberties))
+    new_stones = set([c])
+    new_liberties = set(n for n in move_neighbors if board[n] == '.')
+    for g in groups_to_merge:
+        new_stones = new_stones | g.stones
+        new_liberties = new_liberties | g.liberties
+    new_liberties.remove(c)
+    updated_groups.append(Group(stones=new_stones, liberties=new_liberties))
+
     return updated_groups
 
