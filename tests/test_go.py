@@ -110,7 +110,7 @@ class TestGroupHandling(unittest.TestCase):
 
     def test_update_groups(self):
         board = go.load_board('''
-            .X.......
+            .X.....xx
             X........
             .........
             .........
@@ -120,10 +120,11 @@ class TestGroupHandling(unittest.TestCase):
             .........
             .........
         ''')
-        existing_groups, _ = go.deduce_groups(board)
+        existing_X_groups, existing_x_groups = go.deduce_groups(board)
         updated_board = go.place_stone(board, 'X', pc('A9'))
-        updated_groups = go.update_groups(updated_board, existing_groups, pc('A9'))
-        self.assertEqual(updated_groups, [go.Group(
+        updated_X_groups, updated_x_groups = go.update_groups(updated_board, existing_X_groups, existing_x_groups, pc('A9'))
+        self.assertEqual(updated_X_groups, [go.Group(
             stones=set([pc('A8'), pc('A9'), pc('B9')]),
             liberties=set([pc('A7'), pc('B8'), pc('C9')])
         )])
+        self.assertEqual(existing_x_groups, updated_x_groups)
