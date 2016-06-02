@@ -1,5 +1,6 @@
 import re
 from collections import namedtuple
+import itertools
 
 N = 9
 W = N + 1
@@ -48,6 +49,7 @@ def flood_fill(board, c):
     'From a starting coordinate c, flood-fill the board with a #'
     b = bytearray(board, encoding='ascii')
     color = b[c]
+    entire_group = [c]
     frontier = [c]
     while frontier:
         current = frontier.pop()
@@ -55,7 +57,8 @@ def flood_fill(board, c):
         for n in neighbors(current):
             if b[n] == color:
                 frontier.append(n)
-    return str(b, encoding='ascii')
+                entire_group.append(n)
+    return str(b, encoding='ascii'), set(entire_group)
 
 
 class Group(namedtuple('Group', 'stones liberties')):
@@ -64,6 +67,20 @@ class Group(namedtuple('Group', 'stones liberties')):
     liberties: a set of Coordinates that are empty and adjacent to this group.
     '''
     pass
+
+def deduce_groups(board):
+    'Given a board, return a 2-tuple; a list of groups for each player'
+    def find_groups(board, color):
+        groups = []
+        while color in board:
+            c = board.index(color)
+            board, stones = flood_fill(board, c)
+            potential_liberties = set(itertools.chain(*(neighbors(s) for s in stones)))
+            liberties = {c for c in potential_liberties if board[c] == '.'}
+            groups.append(Group(stones=stones, liberties=liberties))
+        return groups
+
+    return find_groups(board, 'X'), find_groups(board, 'x')
 
 def update_groups(board, existing_groups, c):
     '''

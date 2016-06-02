@@ -56,8 +56,40 @@ class TestGroupHandling(unittest.TestCase):
             .........
             .........
         ''')
-        actual_board = go.flood_fill(board, go.parse_coords('A9'))
+        actual_board, _ = go.flood_fill(board, go.parse_coords('A9'))
         self.assertEqual(expected_board, actual_board)
+
+    def test_deduce_groups(self):
+        board = go.load_board('''
+            .X.....xx
+            X........
+            .........
+            .........
+            .........
+            .........
+            .........
+            .........
+            .........
+        ''')
+        pc = go.parse_coords
+        expected_groups = ([
+            go.Group(
+                stones=set([pc('B9')]),
+                liberties=set([pc('A9'), pc('C9'), pc('B8')])
+            ),
+            go.Group(
+                stones=set([pc('A8')]),
+                liberties=set([pc('A9'), pc('A7'), pc('B8')])
+            )
+            ], [
+            go.Group(
+                stones=set([pc('H9'), pc('J9')]),
+                liberties=set([pc('G9'), pc('H8'), pc('J8')])
+            )
+            ]
+        )
+        actual_groups = go.deduce_groups(board)
+        self.assertEqual(expected_groups, actual_groups)
 
     def test_update_groups(self):
         board = go.load_board('''
@@ -72,18 +104,9 @@ class TestGroupHandling(unittest.TestCase):
             .........
         ''')
         pc = go.parse_coords
-        existing_groups = [
-            go.Group(
-                stones=set([pc('B9')]),
-                liberties=set([pc('A9'), pc('C9'), pc('B8')])
-            ),
-            go.Group(
-                stones=set([pc('A8')]),
-                liberties=set([pc('A9'), pc('A7'), pc('B8')])
-            )
-        ]
-        updated_board = go.place_stone(board, 'X', go.parse_coords('A9'))
-        updated_groups = go.update_groups(updated_board, existing_groups, go.parse_coords('A9'))
+        existing_groups, _ = go.deduce_groups(board)
+        updated_board = go.place_stone(board, 'X', pc('A9'))
+        updated_groups = go.update_groups(updated_board, existing_groups, pc('A9'))
         self.assertEqual(updated_groups, [go.Group(
             stones=set([pc('A8'), pc('A9'), pc('B9')]),
             liberties=set([pc('A7'), pc('B8'), pc('C9')])
