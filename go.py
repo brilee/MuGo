@@ -68,6 +68,11 @@ class Group(namedtuple('Group', 'stones liberties')):
     '''
     pass
 
+def find_liberties(board, stones):
+    'Given a board and a set of stones, find liberties of those stones'
+    potential_liberties = set(itertools.chain(*(neighbors(s) for s in stones)))
+    return {c for c in potential_liberties if board[c] == '.'}
+
 def deduce_groups(board):
     'Given a board, return a 2-tuple; a list of groups for each player'
     def find_groups(board, color):
@@ -75,8 +80,7 @@ def deduce_groups(board):
         while color in board:
             c = board.index(color)
             board, stones = flood_fill(board, c)
-            potential_liberties = set(itertools.chain(*(neighbors(s) for s in stones)))
-            liberties = {c for c in potential_liberties if board[c] == '.'}
+            liberties = find_liberties(board, stones)
             groups.append(Group(stones=stones, liberties=liberties))
         return groups
 
