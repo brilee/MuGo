@@ -13,6 +13,7 @@ MANUAL_EMPTY_BOARD = '''
 .........
           '''
 
+pc = go.parse_coords
 
 class TestGoBoard(unittest.TestCase):
     def test_load_board(self):
@@ -21,14 +22,14 @@ class TestGoBoard(unittest.TestCase):
         self.assertEqual(go.EMPTY_BOARD, go.load_board('. \n' * go.N ** 2))
 
     def test_parsing(self):
-        self.assertEqual(go.parse_coords('A' + str(go.N)), go.W)
+        self.assertEqual(pc('A' + str(go.N)), go.W)
 
     def test_neighbors(self):
-        corner = go.parse_coords('A1')
+        corner = pc('A1')
         neighbors = [go.EMPTY_BOARD[c] for c in go.neighbors(corner)]
         self.assertEqual(sum(1 for n in neighbors if n.isspace()), 2)
 
-        side = go.parse_coords('A2')
+        side = pc('A2')
         side_neighbors = [go.EMPTY_BOARD[c] for c in go.neighbors(side)]
         self.assertEqual(sum(1 for n in side_neighbors if n.isspace()), 1)
 
@@ -56,7 +57,7 @@ class TestGroupHandling(unittest.TestCase):
             .........
             .........
         ''')
-        actual_board, _ = go.flood_fill(board, go.parse_coords('A9'))
+        actual_board, _ = go.flood_fill(board, pc('A9'))
         self.assertEqual(expected_board, actual_board)
 
     def test_deduce_groups(self):
@@ -71,7 +72,6 @@ class TestGroupHandling(unittest.TestCase):
             .........
             .........
         ''')
-        pc = go.parse_coords
         expected_groups = ([
             go.Group(
                 stones=set([pc('B9')]),
@@ -103,7 +103,6 @@ class TestGroupHandling(unittest.TestCase):
             .........
             .........
         ''')
-        pc = go.parse_coords
         existing_groups, _ = go.deduce_groups(board)
         updated_board = go.place_stone(board, 'X', pc('A9'))
         updated_groups = go.update_groups(updated_board, existing_groups, pc('A9'))
