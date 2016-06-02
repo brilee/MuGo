@@ -60,6 +60,15 @@ def flood_fill(board, c):
                 entire_group.append(n)
     return str(b, encoding='ascii'), set(entire_group)
 
+def find_neighbors(color, board, stones):
+    'Find all neighbors of a set of stones of a given color'
+    potential_neighbors = set(itertools.chain(*(neighbors(s) for s in stones)))
+    return {c for c in potential_neighbors if board[c] == color}
+
+def find_liberties(board, stones):
+    'Given a board and a set of stones, find liberties of those stones'
+    return find_neighbors('.', board, stones)
+
 class Group(namedtuple('Group', 'stones liberties')):
     '''
     stones: a set of Coordinates belonging to this group
@@ -67,10 +76,6 @@ class Group(namedtuple('Group', 'stones liberties')):
     '''
     pass
 
-def find_liberties(board, stones):
-    'Given a board and a set of stones, find liberties of those stones'
-    potential_liberties = set(itertools.chain(*(neighbors(s) for s in stones)))
-    return {c for c in potential_liberties if board[c] == '.'}
 
 def deduce_groups(board):
     'Given a board, return a 2-tuple; a list of groups for each player'
