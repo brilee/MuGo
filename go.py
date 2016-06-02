@@ -26,7 +26,7 @@ EMPTY_BOARD = '\n'.join(
     [' ' * W])
 
 def load_board(string):
-    string = re.sub(r'[^xX\.]+', '', string)
+    string = re.sub(r'[^xX\.#]+', '', string)
     assert len(string) == N ** 2, "Board to load didn't have right dimensions"
     return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
 
@@ -41,8 +41,22 @@ def parse_coords(s):
 def neighbors(c):
     return [c+1, c-1, c+W, c-W]
 
-def place_stone(board, move, c):
-    return board[:c] + move + board[c+1:]
+def place_stone(board, color, c):
+    return board[:c] + color + board[c+1:]
+
+def flood_fill(board, c):
+    'From a starting coordinate c, flood-fill the board with a #'
+    b = bytearray(board, encoding='ascii')
+    color = b[c]
+    frontier = [c]
+    while frontier:
+        current = frontier.pop()
+        b[current] = ord('#')
+        for n in neighbors(current):
+            if b[n] == color:
+                frontier.append(n)
+    return str(b, encoding='ascii')
+
 
 class Group(namedtuple('Group', 'stones liberties')):
     '''
