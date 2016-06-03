@@ -85,7 +85,7 @@ def is_eyeish(board, c):
     if board[c] != '.': return None
     surrounding_colors = {board[n] for n in neighbors(c)}
     possessed_by = surrounding_colors.intersection('XO.')
-    if len(possessed_by) == 1:
+    if len(possessed_by) == 1 and not '.' in possessed_by:
         return list(possessed_by)[0]
     else:
         return None

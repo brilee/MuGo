@@ -91,6 +91,7 @@ class TestEyeHandling(unittest.TestCase):
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), 'X')
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B8')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('E5')), None)
 
     def test_likely_eye(self):
         board = go.load_board('''
