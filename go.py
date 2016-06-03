@@ -41,6 +41,8 @@ def parse_coords(s):
     rows_from_top = N - int(s[1:])
     return W + (W * rows_from_top) + col
 
+ALL_COORDS = [parse_coords(col+row) for col in COLUMNS[:N] for row in map(str, range(1, N+1))]
+
 def neighbors(c):
     return [c+1, c-1, c+W, c-W]
 
@@ -180,6 +182,24 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
     @staticmethod
     def initial_state():
         return Position(EMPTY_BOARD, n=0, caps=(0, 0), groups=(set(), set()), ko=None)
+
+    def possible_moves(self):
+        return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)] + [None]
+
+    def update(self, input):
+        return self.play_move(parse_coords(input))
+
+    @property
+    def player1turn(self):
+        return self.n % 2 == 0
+
+    @property
+    def player1wins(self):
+        return False
+
+    @property
+    def player2wins(self):
+        return False
 
     def pass_move(self):
         return Position(self.board.translate(SWAP_COLORS), self.n+1, (self.caps[1], self.caps[0]), (self.groups[1], self.groups[0]), None)
