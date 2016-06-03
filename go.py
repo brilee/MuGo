@@ -44,6 +44,9 @@ def parse_coords(s):
 def neighbors(c):
     return [c+1, c-1, c+W, c-W]
 
+def diagonals(c):
+    return [c-W-1, c-W+1, c+W-1, c+W+1]
+
 def place_stone(board, color, c):
     return board[:c] + color + board[c+1:]
 
@@ -76,6 +79,41 @@ def find_neighbors(color, board, stones):
 def find_liberties(board, stones):
     'Given a board and a set of stones, find liberties of those stones'
     return find_neighbors('.', board, stones)
+
+def is_eyeish(board, c):
+    'Check if c is a false/likely true eye, and return its color if so'
+    if board[c] != '.': return None
+    surrounding_colors = {board[n] for n in neighbors(c)}
+    possessed_by = surrounding_colors.intersection('XO.')
+    if len(possessed_by) == 1:
+        return list(possessed_by)[0]
+    else:
+        return None
+
+def is_likely_eye(board, c):
+    '''
+    Check if a coordinate c is a likely eye, and return its color if so.
+    Does not guarantee that it's an eye. It only guarantees that a player
+    wouldn't ever want to play there. For example: both are likely eyes
+    XX.X.
+    .XX..
+    X....
+    .....
+    '''
+    color = is_eyeish(board, c)
+    if color is None: return None
+    opposite_color = color.translate(SWAP_COLORS)
+
+    diagonal_faults = 0
+    diagonal_owners = [board[d] for d in diagonals(c)]
+    if any(d.isspace() for d in diagonal_owners):
+        diagonal_faults += 1
+    diagonal_faults += len([d for d in diagonal_owners if d == opposite_color])
+
+    if diagonal_faults > 1:
+        return None
+    else:
+        return color
 
 class Group(namedtuple('Group', 'stones liberties')):
     '''

@@ -99,6 +99,29 @@ class TestGroupHandling(unittest.TestCase):
         )])
         self.assertEqual(existing_O_groups, updated_O_groups)
 
+class TestEyeHandling(unittest.TestCase):
+    def test_eyeish(self):
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), 'X')
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B8')), None)
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
+
+    def test_likely_eye(self):
+        board = go.load_board('''
+            XX.X.....
+            X.XO.....
+            .XOO.....
+            X........
+            .........
+            .........
+            .........
+            .........
+            .........
+        ''')
+        self.assertEqual(go.is_likely_eye(board, pc('A7')), 'X')
+        self.assertEqual(go.is_likely_eye(board, pc('B8')), 'X')
+        self.assertEqual(go.is_likely_eye(board, pc('C9')), None)
+        self.assertEqual(go.is_likely_eye(board, pc('A9')), None)
+
 class TestPosition(unittest.TestCase):
     def test_move(self):
         start_board = go.load_board('''
