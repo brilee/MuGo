@@ -47,6 +47,12 @@ def neighbors(c):
 def place_stone(board, color, c):
     return board[:c] + color + board[c+1:]
 
+def capture_stones(board, stones):
+    b = bytearray(board, encoding='ascii')
+    for s in stones:
+        b[s] = ord('.')
+    return str(b, encoding='ascii')
+
 def flood_fill(board, c):
     'From a starting coordinate c, flood-fill the board with a #'
     b = bytearray(board, encoding='ascii')
@@ -113,7 +119,7 @@ def update_groups(board, existing_X_groups, existing_O_groups, c):
     for g in groups_to_merge:
         new_stones = new_stones | g.stones
         new_liberties = new_liberties | g.liberties
-    new_liberties.remove(c)
+    new_liberties = new_liberties - set([c])
     updated_X_groups.append(Group(stones=new_stones, liberties=new_liberties))
 
     updated_O_groups = []
@@ -124,3 +130,68 @@ def update_groups(board, existing_X_groups, existing_O_groups, c):
             updated_O_groups.append(g)
 
     return updated_X_groups, updated_O_groups
+
+class Position(namedtuple('Position', 'board n caps groups ko')):
+    '''
+    board: a string representation of the board
+    n: an int representing moves played so far
+    caps: a (int, int) tuple of captures; caps[0] is the person to play.
+    groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
+    ko: a Move
+    '''
+    @staticmethod
+    def initial_state():
+        return Position(EMPTY_BOARD, n=0, caps=(0, 0), groups=(set(), set()), ko=None)
+
+    def pass_move(self):
+        return Position(self.board.translate(SWAP_COLORS), self.n+1, (self.caps[1], self.caps[0]), (self.groups[1], self.groups[0]), None)
+
+    def play_move(self, c):
+        if c is None:
+            return self.pass_move()
+        if c == self.ko:
+            return None
+
+        working_board = place_stone(self.board, 'X', c)
+        new_X_groups, new_O_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
+
+        # process opponent's captures first, then your own suicides.
+        # As stones are removed, liberty counts become inaccurate.
+        O_captures = set()
+        X_suicides = set()
+        surviving_O_groups = []
+        surviving_X_groups = []
+        for group in new_O_groups:
+            if not group.liberties:
+                O_captures |= group.stones
+                working_board = capture_stones(working_board, group.stones)
+            else:
+                surviving_O_groups.append(group)
+
+        if O_captures:
+            coords_with_updates = find_neighbors('X', working_board, O_captures)
+            final_O_groups = surviving_O_groups
+            final_X_groups = [g if not (g.stones & coords_with_updates)
+                else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
+                for g in new_X_groups]
+        else:
+            for group in new_X_groups:
+                if not group.liberties:
+                    X_suicides |= group.stones
+                    working_board = capture_stones(working_board, group.stones)
+                else:
+                    surviving_X_groups.append(group)
+
+            coords_with_updates = find_neighbors('O', working_board, X_suicides)
+            final_X_groups = surviving_X_groups
+            final_O_groups = [g if not (g.stones & coords_with_updates)
+                else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
+                for g in new_O_groups]
+
+        return Position(
+            board=working_board.translate(SWAP_COLORS),
+            n=self.n + 1,
+            caps=(self.caps[1] + len(X_suicides), self.caps[0] + len(O_captures)),
+            groups=(final_O_groups, final_X_groups),
+            ko=None
+        )
