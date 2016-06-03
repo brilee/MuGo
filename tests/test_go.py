@@ -190,7 +190,7 @@ class TestPosition(unittest.TestCase):
             n=1,
             caps=(2, 2),
             groups=go.deduce_groups(expected_board),
-            ko=pc('A9')
+            ko=pc('B9')
         )
         actual_position = start_position.play_move(pc('A9'))
 

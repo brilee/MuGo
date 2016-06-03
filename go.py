@@ -263,7 +263,10 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
                     # suicides are illegal!
                     return None
 
-        ko = c if len(O_captures) == 1 and is_eyeish(self.board, c) == 'O' else None
+        if len(O_captures) == 1 and is_eyeish(self.board, c) == 'O':
+            ko = list(O_captures)[0]
+        else:
+            ko = None
 
         return Position(
             board=working_board.translate(SWAP_COLORS),
