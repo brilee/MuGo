@@ -231,6 +231,8 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
             return self.pass_move()
         if c == self.ko:
             return None
+        if self.board[c] != '.':
+            return None
 
         working_board = place_stone(self.board, 'X', c)
         new_X_groups, new_O_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
