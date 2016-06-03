@@ -189,6 +189,24 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
     def update(self, input):
         return self.play_move(parse_coords(input))
 
+    def __str__(self):
+        if self.ko is not None:
+            board = place_stone(self.board, 'k', self.ko)
+        else:
+            board = self.board
+        captures = self.caps
+        if not self.player1turn:
+            board = board.translate(SWAP_COLORS)
+            captures = captures[::-1]
+
+        raw_board_contents = board.split('\n')[1:-1]
+        row_labels = '12345678901234567890'[:N]
+        annotated_board_contents = reversed([''.join(r) for r in zip(row_labels, reversed(raw_board_contents), row_labels)])
+        header_footer_rows = [' ' + COLUMNS[:N] + ' ']
+        annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
+        details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n + 1, *captures)
+        return annotated_board + details
+
     @property
     def player1turn(self):
         return self.n % 2 == 0
