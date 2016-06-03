@@ -110,9 +110,35 @@ class TestPosition(unittest.TestCase):
             return sorted(groups, key=lambda g: sorted(g.stones) + sorted(g.liberties))
         canonical_p1 = position1._replace(groups=tuple(map(sort_groups, position1.groups)))
         canonical_p2 = position2._replace(groups=tuple(map(sort_groups, position2.groups)))
-        self.assertEqual(canonical_p1, canonical_p2)
+        self.assertEqual(canonical_p1.board, canonical_p2.board)
+        self.assertEqual(canonical_p1.n, canonical_p2.n)
+        self.assertEqual(canonical_p1.groups, canonical_p2.groups)
+        self.assertEqual(canonical_p1.caps, canonical_p2.caps)
+        self.assertEqual(canonical_p1.ko, canonical_p2.ko)
 
     def test_move(self):
+        start_position = go.Position(
+            board=TEST_BOARD,
+            n=0,
+            caps=(1,2),
+            groups=go.deduce_groups(TEST_BOARD),
+            ko=None
+        )
+        expected_board = go.load_board('''
+            .OO....XX
+            O........
+        ''' + EMPTY_ROW * 7)
+        expected_position = go.Position(
+            board=expected_board,
+            n=1,
+            caps=(2,1),
+            groups=go.deduce_groups(expected_board),
+            ko=None
+        )
+        actual_position = start_position.play_move(pc('C9'))
+        self.assertEqualPositions(actual_position, expected_position)
+
+    def test_move_with_capture(self):
         start_board = go.load_board(EMPTY_ROW * 5 + '''
             XXXX.....
             XOOX.....
