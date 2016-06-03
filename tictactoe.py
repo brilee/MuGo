@@ -35,7 +35,7 @@ class TicTacToe(namedtuple('TicTacToe', ALL_POSITIONS + ['player1turn'])):
 
     def update(self, move):
         if getattr(self, move) is not None:
-            raise ValueError("Move already exists at %s in %s" % (move, self))
+            return None
         return self._replace(**{move: self.player1turn, 'player1turn': not self.player1turn})
 
     def __repr__(self):

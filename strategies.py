@@ -11,7 +11,7 @@ class BaseStrategy(object):
     Takes in a board implementing the following interface
     class Board:
         possible_moves(self) => list(Move)
-        update(self, Move) throws ValueError => Board # new board instance
+        update(self, Move) => Board | None (for invalid move)
         @property player1turn(self) => bool
         @property player1wins(self) => bool
         @property player2wins(self) => bool
@@ -35,11 +35,11 @@ class InteractivePlayer(BaseStrategy):
     def _suggest_move(self, board):
         while True:
             player_input = input("It's your turn! Play a move.\n")
-            try:
-                board.update(player_input)
-                return player_input
-            except ValueError:
+            new_board = board.update(player_input)
+            if new_board is None:
                 print("Invalid move")
+            else:
+                return player_input
 
 class RandomPlayer(BaseStrategy):
     def _suggest_move(self, board):

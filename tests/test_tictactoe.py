@@ -29,8 +29,4 @@ class TestTicTacToe(unittest.TestCase):
         self.assertEqual(new_board, expected_board)
 
         t = load_board('XXX ___ ___', True)
-        with self.assertRaises(ValueError):
-            t.update('a1')
-
-
-
+        self.assertEqual(t.update('a1'), None)
