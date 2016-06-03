@@ -208,10 +208,11 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
             else:
                 surviving_O_groups.append(group)
 
+        final_O_groups = surviving_O_groups
+        final_X_groups = new_X_groups
         if O_captures:
             # recalculate liberties for groups adjacent to a captured O group
             coords_with_updates = find_neighbors('X', working_board, O_captures)
-            final_O_groups = surviving_O_groups
             final_X_groups = [g if not (g.stones & coords_with_updates)
                 else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
                 for g in new_X_groups]
