@@ -123,6 +123,13 @@ class TestEyeHandling(unittest.TestCase):
         self.assertEqual(go.is_likely_eye(board, pc('A9')), None)
 
 class TestPosition(unittest.TestCase):
+    def assertEqualPositions(self, position1, position2):
+        def sort_groups(groups):
+            return sorted(groups, key=lambda g: sorted(g.stones) + sorted(g.liberties))
+        canonical_p1 = position1._replace(groups=tuple(map(sort_groups, position1.groups)))
+        canonical_p2 = position2._replace(groups=tuple(map(sort_groups, position2.groups)))
+        self.assertEqual(canonical_p1, canonical_p2)
+
     def test_move(self):
         start_board = go.load_board('''
             .........
@@ -161,6 +168,4 @@ class TestPosition(unittest.TestCase):
             ko=None
         )
         actual_position = start_position.play_move(pc('B2'))
-        # this test is deterministic but lucky; the order of the groups in
-        # position.groups[0], position.groups[1] is not actually guaranteed
-        self.assertEqual(actual_position, expected_position)
+        self.assertEqualPositions(actual_position, expected_position)
