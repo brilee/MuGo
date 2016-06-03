@@ -1,6 +1,22 @@
 from collections import Counter
 from strategies import AVAILABLE_STRATEGIES
-from tictactoe import EMPTY_BOARD
+import tictactoe
+import go
+
+AVAILABLE_GAMES = {
+    "tictactoe": tictactoe.EMPTY_BOARD,
+    "go": go.Position.initial_state(),
+}
+
+def choose_game():
+    choice = None
+    while choice is None:
+        user_input = input("Choose from available games: " + ', '.join(AVAILABLE_GAMES) + '\n')
+        if user_input in AVAILABLE_GAMES:
+            choice = AVAILABLE_GAMES[user_input]
+        else:
+            print("Not a valid choice!")
+    return choice
 
 def choose_strategy():
     choice = None
@@ -39,9 +55,10 @@ def run_many(strategy1, strategy2, board, num_trials=1000):
     return Counter(results)
 
 if __name__ == '__main__':
+    game = choose_game()
     strategy1 = choose_strategy()
     strategy2 = choose_strategy()
-    result = play_game(strategy1, strategy2, EMPTY_BOARD, verbose=True)
+    result = play_game(strategy1, strategy2, game, verbose=True)
     if result is True:
         print("Player 1 wins!")
     elif result is False:
