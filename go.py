@@ -169,19 +169,21 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
                 surviving_O_groups.append(group)
 
         if O_captures:
+            # recalculate liberties for groups adjacent to a captured O group
             coords_with_updates = find_neighbors('X', working_board, O_captures)
             final_O_groups = surviving_O_groups
             final_X_groups = [g if not (g.stones & coords_with_updates)
                 else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
                 for g in new_X_groups]
         else:
+            # suicide can only happen if no O captures were made
             for group in new_X_groups:
                 if not group.liberties:
                     X_suicides |= group.stones
                     working_board = capture_stones(working_board, group.stones)
                 else:
                     surviving_X_groups.append(group)
-
+            # recalculate liberties for groups adjacent to a suicidal X group
             coords_with_updates = find_neighbors('O', working_board, X_suicides)
             final_X_groups = surviving_X_groups
             final_O_groups = [g if not (g.stones & coords_with_updates)
