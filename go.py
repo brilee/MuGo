@@ -4,7 +4,7 @@ import itertools
 
 N = 9
 W = N + 1
-# Represent a board as a string, with '.' empty, 'X' to play, 'x' other player.
+# Represent a board as a string, with '.' empty, 'X' to play, 'O' other player.
 # Whitespace is used as a border (to avoid IndexError when computing neighbors)
 
 # A Coordinate `c` is an int: an index into the board.
@@ -26,8 +26,10 @@ EMPTY_BOARD = '\n'.join(
     ['.' * N for i in range(N)] + 
     [' ' * W])
 
+SWAP_COLORS = str.maketrans('XO', 'OX')
+
 def load_board(string):
-    string = re.sub(r'[^xX\.#]+', '', string)
+    string = re.sub(r'[^OX\.#]+', '', string)
     assert len(string) == N ** 2, "Board to load didn't have right dimensions"
     return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
 
@@ -88,9 +90,9 @@ def deduce_groups(board):
             groups.append(Group(stones=stones, liberties=liberties))
         return groups
 
-    return find_groups(board, 'X'), find_groups(board, 'x')
+    return find_groups(board, 'X'), find_groups(board, 'O')
 
-def update_groups(board, existing_X_groups, existing_x_groups, c):
+def update_groups(board, existing_X_groups, existing_O_groups, c):
     '''
     When a move is played, update the list of groups and their liberties.
     This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
@@ -114,11 +116,11 @@ def update_groups(board, existing_X_groups, existing_x_groups, c):
     new_liberties.remove(c)
     updated_X_groups.append(Group(stones=new_stones, liberties=new_liberties))
 
-    updated_x_groups = []
-    for g in existing_x_groups:
+    updated_O_groups = []
+    for g in existing_O_groups:
         if c in g.liberties:
-            updated_x_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
+            updated_O_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
         else:
-            updated_x_groups.append(g)
+            updated_O_groups.append(g)
 
-    return updated_X_groups, updated_x_groups
+    return updated_X_groups, updated_O_groups
