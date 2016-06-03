@@ -191,7 +191,7 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
 
     def __str__(self):
         if self.ko is not None:
-            board = place_stone(self.board, 'k', self.ko)
+            board = place_stone(self.board, '*', self.ko)
         else:
             board = self.board
         captures = self.caps
