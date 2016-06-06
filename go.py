@@ -171,17 +171,19 @@ def update_groups(board, existing_X_groups, existing_O_groups, c):
 
     return updated_X_groups, updated_O_groups
 
-class Position(namedtuple('Position', 'board n caps groups ko')):
+class Position(namedtuple('Position', 'board n komi caps groups ko last last2')):
     '''
     board: a string representation of the board
     n: an int representing moves played so far
+    komi: a float, representing points given to the second player.
     caps: a (int, int) tuple of captures; caps[0] is the person to play.
     groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
     ko: a Move
+    last, last2: a Move
     '''
     @staticmethod
     def initial_state():
-        return Position(EMPTY_BOARD, n=0, caps=(0, 0), groups=(set(), set()), ko=None)
+        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=(set(), set()), ko=None, last=None, last2=None)
 
     def possible_moves(self):
         return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)]
@@ -220,7 +222,16 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
         return False
 
     def pass_move(self):
-        return Position(self.board.translate(SWAP_COLORS), self.n+1, (self.caps[1], self.caps[0]), (self.groups[1], self.groups[0]), None)
+        return Position(
+            board=self.board.translate(SWAP_COLORS),
+            n=self.n+1,
+            komi=-self.komi,
+            caps=(self.caps[1], self.caps[0]),
+            groups=(self.groups[1], self.groups[0]),
+            ko=None,
+            last=None,
+            last2=None,
+        )
 
     def play_move(self, c):
         # Obeys CGOS Rules of Play. In short:
@@ -271,7 +282,10 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
         return Position(
             board=working_board.translate(SWAP_COLORS),
             n=self.n + 1,
+            komi=-self.komi,
             caps=(self.caps[1], self.caps[0] + len(O_captures)),
             groups=(final_O_groups, final_X_groups),
-            ko=ko
+            ko=ko,
+            last=c,
+            last2=self.last,
         )

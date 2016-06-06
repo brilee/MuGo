@@ -121,9 +121,12 @@ class TestPosition(unittest.TestCase):
         start_position = go.Position(
             board=TEST_BOARD,
             n=0,
+            komi=6.5,
             caps=(1,2),
             groups=go.deduce_groups(TEST_BOARD),
-            ko=None
+            ko=None,
+            last=None,
+            last2=None,
         )
         expected_board = go.load_board('''
             .OO....XX
@@ -132,9 +135,12 @@ class TestPosition(unittest.TestCase):
         expected_position = go.Position(
             board=expected_board,
             n=1,
+            komi=-6.5,
             caps=(2,1),
             groups=go.deduce_groups(expected_board),
-            ko=None
+            ko=None,
+            last=pc('C9'),
+            last2=None,
         )
         actual_position = start_position.play_move(pc('C9'))
         self.assertEqualPositions(actual_position, expected_position)
@@ -149,9 +155,12 @@ class TestPosition(unittest.TestCase):
         start_position = go.Position(
             board=start_board,
             n=0,
+            komi=6.5,
             caps=(1, 2),
             groups=go.deduce_groups(start_board),
-            ko=None
+            ko=None,
+            last=None,
+            last2=None,
         )
         expected_board = go.load_board(EMPTY_ROW * 5 + '''
             OOOO.....
@@ -162,9 +171,12 @@ class TestPosition(unittest.TestCase):
         expected_position = go.Position(
             board=expected_board,
             n=1,
+            komi=-6.5,
             caps=(2, 7),
             groups=go.deduce_groups(expected_board),
-            ko=None
+            ko=None,
+            last=pc('B2'),
+            last2=None,
         )
         actual_position = start_position.play_move(pc('B2'))
         self.assertEqualPositions(actual_position, expected_position)
@@ -177,9 +189,12 @@ class TestPosition(unittest.TestCase):
         start_position = go.Position(
             board=start_board,
             n=0,
+            komi=6.5,
             caps=(1, 2),
             groups=go.deduce_groups(start_board),
-            ko=None
+            ko=None,
+            last=None,
+            last2=None,
         )
         expected_board = go.load_board('''
             O.O......
