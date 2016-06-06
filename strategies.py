@@ -22,7 +22,7 @@ class BaseStrategy(object):
 
     def suggest_move(self, board):
         if not board.possible_moves():
-            raise TypeError("No more valid moves left!")
+            return None
         return self._suggest_move(board)
 
     def _suggest_move(self, board):

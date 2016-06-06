@@ -184,7 +184,7 @@ class Position(namedtuple('Position', 'board n caps groups ko')):
         return Position(EMPTY_BOARD, n=0, caps=(0, 0), groups=(set(), set()), ko=None)
 
     def possible_moves(self):
-        return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)] + [None]
+        return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)]
 
     def update(self, input):
         return self.play_move(parse_coords(input))
