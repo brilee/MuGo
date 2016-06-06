@@ -289,3 +289,27 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2'))
             last=c,
             last2=self.last,
         )
+
+    def score(self):
+        'Returns score from player 1 perspective, regardless of turn.'
+        working_board = self.board
+        while '.' in working_board:
+            c = working_board.find('.')
+            working_board, territory = flood_fill(working_board, c)
+            borders = set(itertools.chain(*(neighbors(t) for t in territory)))
+            border_colors = set(working_board[b] for b in borders)
+            X_border = 'X' in border_colors
+            O_border = 'O' in border_colors
+            if X_border and not O_border:
+                territory_color = 'X'
+            elif O_border and not X_border:
+                territory_color = 'O'
+            else:
+                territory_color = '?' # dame, or seki
+            working_board = working_board.replace('#', territory_color)
+
+        raw_score = working_board.count('X') - working_board.count('O') - self.komi
+        if self.n % 2 == 1:
+            raw_score *= -1
+
+        return raw_score

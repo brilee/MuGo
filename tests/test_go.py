@@ -203,10 +203,63 @@ class TestPosition(unittest.TestCase):
         expected_position = go.Position(
             board=expected_board,
             n=1,
+            komi=-6.5,
             caps=(2, 2),
             groups=go.deduce_groups(expected_board),
-            ko=pc('B9')
+            ko=pc('B9'),
+            last=pc('A9'),
+            last2=None,
         )
         actual_position = start_position.play_move(pc('A9'))
 
         self.assertEqualPositions(actual_position, expected_position)
+
+class TestScoring(unittest.TestCase):
+    def test_scoring(self):
+            board = go.load_board('''
+                .XX......
+                OOXX.....
+                OOOX...X.
+                OXX......
+                OOXXXXXX.
+                OOOXOXOXX
+                .O.OOXOOX
+                .O.O.OOXX
+                ......OOO
+            ''')
+            position = go.Position(
+                board=board,
+                n=54,
+                komi=6.5,
+                caps=(2, 5),
+                groups=go.deduce_groups(board),
+                ko=None,
+                last=None,
+                last2=None,
+            )
+            expected_score = 1.5
+            self.assertEqual(position.score(), expected_score)
+
+            board = go.load_board('''
+                OOO......
+                XXOO.....
+                XXXO...O.
+                XOO......
+                XXOOOOOO.
+                XXXOXOXOO
+                .X.XXOXXO
+                .X.X.XXOO
+                ......XXX
+            ''')
+            position = go.Position(
+                board=board,
+                n=55,
+                komi=-6.5,
+                caps=(5, 2),
+                groups=go.deduce_groups(board),
+                ko=None,
+                last=None,
+                last2=None,
+            )
+            expected_score = 2.5
+            self.assertEqual(position.score(), expected_score)
