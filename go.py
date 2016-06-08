@@ -20,6 +20,7 @@ W = N + 1
 # 1....
 
 COLUMNS = 'ABCDEFGHJKLMNOPQRST'
+SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 EMPTY_BOARD = '\n'.join(
     [' ' * N] + 
@@ -33,7 +34,15 @@ def load_board(string):
     assert len(string) == N ** 2, "Board to load didn't have right dimensions"
     return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
 
+def parse_sgf_coords(s):
+    'Interprets coords in the format "hc", with "aa" being top left quadrant'
+    if not s:
+        return None
+    x_coord, y_coord = [SGF_COLUMNS.index(coord) for coord in s]
+    return W + W * y_coord + x_coord
+
 def parse_coords(s):
+    'Interprets coords in the format "H3", with A1 being lower left quadrant.'
     if s == 'pass':
         return None
     s = s.upper()

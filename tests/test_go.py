@@ -1,6 +1,9 @@
 import unittest
 import go
 
+# This test file assumes a 9x9 board configuration.
+go.N = 9
+
 MANUAL_EMPTY_BOARD = '''         
 .........
 .........
@@ -30,7 +33,9 @@ class TestGoBoard(unittest.TestCase):
         self.assertEqual(go.EMPTY_BOARD, go.load_board('. \n' * go.N ** 2))
 
     def test_parsing(self):
-        self.assertEqual(pc('A' + str(go.N)), go.W)
+        self.assertEqual(pc('A9'), go.W)
+        self.assertEqual(go.parse_sgf_coords('aa'), go.W)
+        self.assertEqual(pc('D4'), go.parse_sgf_coords('df'))
 
     def test_neighbors(self):
         corner = pc('A1')
