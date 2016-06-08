@@ -2,8 +2,6 @@ import re
 from collections import namedtuple
 import itertools
 
-N = 9
-W = N + 1
 # Represent a board as a string, with '.' empty, 'X' to play, 'O' other player.
 # Whitespace is used as a border (to avoid IndexError when computing neighbors)
 
@@ -19,15 +17,24 @@ W = N + 1
 # 2....\n
 # 1....
 
+N = 9
+W = N + 1
+ALL_COORDS = [] # initialized later on
+EMPTY_BOARD = '' # initialized later on
 COLUMNS = 'ABCDEFGHJKLMNOPQRST'
 SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-EMPTY_BOARD = '\n'.join(
-    [' ' * N] + 
-    ['.' * N for i in range(N)] + 
-    [' ' * W])
-
 SWAP_COLORS = str.maketrans('XO', 'OX')
+
+def set_board_size(n):
+    'Hopefully nobody tries to run both 9x9 and 19x19 game instances at once.'
+    global N, W, ALL_COORDS, EMPTY_BOARD
+    N = n
+    W = n + 1
+    ALL_COORDS = [parse_coords(col+row) for col in COLUMNS[:N] for row in map(str, range(1, N+1))]
+    EMPTY_BOARD = '\n'.join(
+        [' ' * N] +
+        ['.' * N for i in range(N)] +
+        [' ' * W])
 
 def load_board(string):
     string = re.sub(r'[^OX\.#]+', '', string)
@@ -49,8 +56,6 @@ def parse_coords(s):
     col = COLUMNS.index(s[0])
     rows_from_top = N - int(s[1:])
     return W + (W * rows_from_top) + col
-
-ALL_COORDS = [parse_coords(col+row) for col in COLUMNS[:N] for row in map(str, range(1, N+1))]
 
 def neighbors(c):
     return [c+1, c-1, c+W, c-W]
@@ -322,3 +327,5 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2'))
             raw_score *= -1
 
         return raw_score
+
+set_board_size(9)
