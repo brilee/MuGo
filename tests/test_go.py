@@ -152,6 +152,21 @@ class TestPosition(unittest.TestCase):
         actual_position = start_position.play_move(pc('C9'))
         self.assertEqualPositions(actual_position, expected_position)
 
+        expected_board2 = go.load_board('''
+            .BB....WW
+            B.......W
+        ''' + EMPTY_ROW * 7)
+        expected_position2 = expected_position._replace(
+            board=expected_board2,
+            n=2,
+            groups=go.deduce_groups(expected_board2),
+            last=pc('J8'),
+            last2=pc('C9'),
+            player1turn=True,
+        )
+        actual_position2 = actual_position.play_move(pc('J8'))
+        self.assertEqualPositions(actual_position2, expected_position2)
+
     def test_move_with_capture(self):
         start_board = go.load_board(EMPTY_ROW * 5 + '''
             BBBB.....

@@ -252,9 +252,10 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             return None
 
         AP_color = 'B' if self.player1turn else 'W'
+        AP_groups, OP_groups = self.groups if self.player1turn else self.groups[::-1]
 
         working_board = place_stone(self.board, AP_color, c)
-        new_AP_groups, new_OP_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
+        new_AP_groups, new_OP_groups = update_groups(working_board, AP_groups, OP_groups, c)
 
         # process OP captures first, then your own suicides.
         # As stones are removed, liberty counts become inaccurate.
