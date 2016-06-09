@@ -149,7 +149,7 @@ class TestPosition(unittest.TestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.play_move(pc('C9'))
+        actual_position = start_position.update('C9')
         self.assertEqualPositions(actual_position, expected_position)
 
         expected_board2 = go.load_board('''
@@ -164,7 +164,7 @@ class TestPosition(unittest.TestCase):
             last2=pc('C9'),
             player1turn=True,
         )
-        actual_position2 = actual_position.play_move(pc('J8'))
+        actual_position2 = actual_position.update('J8')
         self.assertEqualPositions(actual_position2, expected_position2)
 
     def test_move_with_capture(self):
@@ -202,7 +202,7 @@ class TestPosition(unittest.TestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.play_move(pc('B2'))
+        actual_position = start_position.update('B2')
         self.assertEqualPositions(actual_position, expected_position)
 
     def test_ko_move(self):
@@ -236,7 +236,7 @@ class TestPosition(unittest.TestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.play_move(pc('A9'))
+        actual_position = start_position.update('A9')
 
         self.assertEqualPositions(actual_position, expected_position)
 
