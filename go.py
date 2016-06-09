@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 import itertools
 
-# Represent a board as a string, with '.' empty, 'X' is black, 'O' is white.
+# Represent a board as a string, with '.' empty, 'B' is black, 'W' is white.
 # AP and OP refer to "active player" and "other player".
 # Whitespace is used as a border (to avoid IndexError when computing neighbors)
 
@@ -24,7 +24,7 @@ ALL_COORDS = [] # initialized later on
 EMPTY_BOARD = '' # initialized later on
 COLUMNS = 'ABCDEFGHJKLMNOPQRST'
 SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-SWAP_COLORS = str.maketrans('XO', 'OX')
+SWAP_COLORS = str.maketrans('BW', 'WB')
 
 def set_board_size(n):
     'Hopefully nobody tries to run both 9x9 and 19x19 game instances at once.'
@@ -38,7 +38,7 @@ def set_board_size(n):
         [' ' * W])
 
 def load_board(string):
-    string = re.sub(r'[^OX\.#]+', '', string)
+    string = re.sub(r'[^BW\.#]+', '', string)
     assert len(string) == N ** 2, "Board to load didn't have right dimensions"
     return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
 
@@ -101,7 +101,7 @@ def is_eyeish(board, c):
     'Check if c is a false/likely true eye, and return its color if so'
     if board[c] != '.': return None
     surrounding_colors = {board[n] for n in neighbors(c)}
-    possessed_by = surrounding_colors.intersection('XO.')
+    possessed_by = surrounding_colors.intersection('BW.')
     if len(possessed_by) == 1 and not '.' in possessed_by:
         return list(possessed_by)[0]
     else:
@@ -112,9 +112,9 @@ def is_likely_eye(board, c):
     Check if a coordinate c is a likely eye, and return its color if so.
     Does not guarantee that it's an eye. It only guarantees that a player
     wouldn't ever want to play there. For example: both are likely eyes
-    XX.X.
-    .XX..
-    X....
+    BB.B.
+    .BB..
+    B....
     .....
     '''
     color = is_eyeish(board, c)
@@ -151,13 +151,12 @@ def deduce_groups(board):
             groups.append(Group(stones=stones, liberties=liberties))
         return groups
 
-    return find_groups(board, 'X'), find_groups(board, 'O')
+    return find_groups(board, 'B'), find_groups(board, 'W')
 
 def update_groups(board, existing_AP_groups, existing_OP_groups, c):
     '''
     When a move is played, update the list of groups and their liberties.
     This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
-    The new move should be of color X.
     The board should represent the state after the move has been played at `c`.
     '''
     updated_AP_groups, groups_to_merge = [], []
@@ -252,7 +251,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         if self.board[c] != '.':
             return None
 
-        AP_color = 'X' if self.player1turn else 'O'
+        AP_color = 'B' if self.player1turn else 'W'
 
         working_board = place_stone(self.board, AP_color, c)
         new_AP_groups, new_OP_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
@@ -283,7 +282,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                     # suicides are illegal!
                     return None
 
-        if len(OP_captures) == 1 and is_eyeish(self.board, c) == 'O':
+        if len(OP_captures) == 1 and is_eyeish(self.board, c) == 'W':
             ko = list(OP_captures)[0]
         else:
             ko = None
@@ -315,16 +314,16 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             working_board, territory = flood_fill(working_board, c)
             borders = set(itertools.chain(*(neighbors(t) for t in territory)))
             border_colors = set(working_board[b] for b in borders)
-            X_border = 'X' in border_colors
-            O_border = 'O' in border_colors
+            X_border = 'B' in border_colors
+            O_border = 'W' in border_colors
             if X_border and not O_border:
-                territory_color = 'X'
+                territory_color = 'B'
             elif O_border and not X_border:
-                territory_color = 'O'
+                territory_color = 'W'
             else:
                 territory_color = '?' # dame, or seki
             working_board = working_board.replace('#', territory_color)
 
-        return working_board.count('X') - working_board.count('O') - self.komi
+        return working_board.count('B') - working_board.count('W') - self.komi
 
 set_board_size(9)

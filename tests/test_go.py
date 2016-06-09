@@ -18,8 +18,8 @@ MANUAL_EMPTY_BOARD = '''
 
 EMPTY_ROW = '.' * go.N + '\n'
 TEST_BOARD = go.load_board('''
-.X.....OO
-X........
+.B.....WW
+B........
 ''' + EMPTY_ROW * 7)
 
 pc = go.parse_coords
@@ -49,8 +49,8 @@ class TestGoBoard(unittest.TestCase):
 class TestGroupHandling(unittest.TestCase):
     def test_flood_fill(self):
         expected_board = go.load_board('''
-            .X.....##
-            X........
+            .B.....##
+            B........
         ''' + EMPTY_ROW * 7)
         actual_board, _ = go.flood_fill(TEST_BOARD, pc('H9'))
         self.assertEqual(expected_board, actual_board)
@@ -83,7 +83,7 @@ class TestGroupHandling(unittest.TestCase):
 
     def test_update_groups(self):
         existing_X_groups, existing_O_groups = go.deduce_groups(TEST_BOARD)
-        updated_board = go.place_stone(TEST_BOARD, 'X', pc('A9'))
+        updated_board = go.place_stone(TEST_BOARD, 'B', pc('A9'))
         updated_X_groups, updated_O_groups = go.update_groups(updated_board, existing_X_groups, existing_O_groups, pc('A9'))
         self.assertEqual(updated_X_groups, [go.Group(
             stones=pc_set('A8 A9 B9'),
@@ -93,20 +93,20 @@ class TestGroupHandling(unittest.TestCase):
 
 class TestEyeHandling(unittest.TestCase):
     def test_eyeish(self):
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), 'X')
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), 'B')
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B8')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('E5')), None)
 
     def test_likely_eye(self):
         board = go.load_board('''
-            XX.X.....
-            X.XO.....
-            .XOO.....
-            X........
+            BB.B.....
+            B.BW.....
+            .BWW.....
+            B........
         ''' + EMPTY_ROW * 5)
-        self.assertEqual(go.is_likely_eye(board, pc('A7')), 'X')
-        self.assertEqual(go.is_likely_eye(board, pc('B8')), 'X')
+        self.assertEqual(go.is_likely_eye(board, pc('A7')), 'B')
+        self.assertEqual(go.is_likely_eye(board, pc('B8')), 'B')
         self.assertEqual(go.is_likely_eye(board, pc('C9')), None)
         self.assertEqual(go.is_likely_eye(board, pc('A9')), None)
 
@@ -135,8 +135,8 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board('''
-            .XX....OO
-            X........
+            .BB....WW
+            B........
         ''' + EMPTY_ROW * 7)
         expected_position = go.Position(
             board=expected_board,
@@ -154,10 +154,10 @@ class TestPosition(unittest.TestCase):
 
     def test_move_with_capture(self):
         start_board = go.load_board(EMPTY_ROW * 5 + '''
-            XXXX.....
-            XOOX.....
-            O.OX.....
-            OOXX.....
+            BBBB.....
+            BWWB.....
+            W.WB.....
+            WWBB.....
         ''')
         start_position = go.Position(
             board=start_board,
@@ -171,10 +171,10 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board(EMPTY_ROW * 5 + '''
-            XXXX.....
-            X..X.....
-            .X.X.....
-            ..XX.....
+            BBBB.....
+            B..B.....
+            .B.B.....
+            ..BB.....
         ''')
         expected_position = go.Position(
             board=expected_board,
@@ -192,8 +192,8 @@ class TestPosition(unittest.TestCase):
 
     def test_ko_move(self):
         start_board = go.load_board('''
-            .OX......
-            OX.......
+            .WB......
+            WB.......
         ''' + EMPTY_ROW * 7)
         start_position = go.Position(
             board=start_board,
@@ -207,8 +207,8 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board('''
-            X.X......
-            OX.......
+            B.B......
+            WB.......
         ''' + EMPTY_ROW * 7)
         expected_position = go.Position(
             board=expected_board,
@@ -228,15 +228,15 @@ class TestPosition(unittest.TestCase):
 class TestScoring(unittest.TestCase):
     def test_scoring(self):
             board = go.load_board('''
-                .XX......
-                OOXX.....
-                OOOX...X.
-                OXX......
-                OOXXXXXX.
-                OOOXOXOXX
-                .O.OOXOOX
-                .O.O.OOXX
-                ......OOO
+                .BB......
+                WWBB.....
+                WWWB...B.
+                WBB......
+                WWBBBBBB.
+                WWWBWBWBB
+                .W.WWBWWB
+                .W.W.WWBB
+                ......WWW
             ''')
             position = go.Position(
                 board=board,
@@ -253,15 +253,15 @@ class TestScoring(unittest.TestCase):
             self.assertEqual(position.score(), expected_score)
 
             board = go.load_board('''
-                XXX......
-                OOXX.....
-                OOOX...X.
-                OXX......
-                OOXXXXXX.
-                OOOXOXOXX
-                .O.OOXOOX
-                .O.O.OOXX
-                ......OOO
+                BBB......
+                WWBB.....
+                WWWB...B.
+                WBB......
+                WWBBBBBB.
+                WWWBWBWBB
+                .W.WWBWWB
+                .W.W.WWBB
+                ......WWW
             ''')
             position = go.Position(
                 board=board,
