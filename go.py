@@ -2,7 +2,8 @@ import re
 from collections import namedtuple
 import itertools
 
-# Represent a board as a string, with '.' empty, 'X' to play, 'O' other player.
+# Represent a board as a string, with '.' empty, 'X' is black, 'O' is white.
+# AP and OP refer to "active player" and "other player".
 # Whitespace is used as a border (to avoid IndexError when computing neighbors)
 
 # A Coordinate `c` is an int: an index into the board.
@@ -152,21 +153,19 @@ def deduce_groups(board):
 
     return find_groups(board, 'X'), find_groups(board, 'O')
 
-def update_groups(board, existing_X_groups, existing_O_groups, c):
+def update_groups(board, existing_AP_groups, existing_OP_groups, c):
     '''
     When a move is played, update the list of groups and their liberties.
     This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
     The new move should be of color X.
     The board should represent the state after the move has been played at `c`.
     '''
-    assert board[c] == 'X'
-
-    updated_X_groups, groups_to_merge = [], []
-    for g in existing_X_groups:
+    updated_AP_groups, groups_to_merge = [], []
+    for g in existing_AP_groups:
         if c in g.liberties:
             groups_to_merge.append(g)
         else:
-            updated_X_groups.append(g)
+            updated_AP_groups.append(g)
 
     new_stones = {c}
     new_liberties = set(n for n in neighbors(c) if board[n] == '.')
@@ -174,16 +173,16 @@ def update_groups(board, existing_X_groups, existing_O_groups, c):
         new_stones = new_stones | g.stones
         new_liberties = new_liberties | g.liberties
     new_liberties = new_liberties - {c}
-    updated_X_groups.append(Group(stones=new_stones, liberties=new_liberties))
+    updated_AP_groups.append(Group(stones=new_stones, liberties=new_liberties))
 
-    updated_O_groups = []
-    for g in existing_O_groups:
+    updated_OP_groups = []
+    for g in existing_OP_groups:
         if c in g.liberties:
-            updated_O_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
+            updated_OP_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
         else:
-            updated_O_groups.append(g)
+            updated_OP_groups.append(g)
 
-    return updated_X_groups, updated_O_groups
+    return updated_AP_groups, updated_OP_groups
 
 class Position(namedtuple('Position', 'board n komi caps groups ko last last2 player1turn')):
     '''
@@ -211,9 +210,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         else:
             board = self.board
         captures = self.caps
-        if not self.player1turn:
-            board = board.translate(SWAP_COLORS)
-            captures = captures[::-1]
 
         raw_board_contents = board.split('\n')[1:-1]
         row_labels = '12345678901234567890'[:N]
@@ -233,14 +229,14 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
 
     def pass_move(self):
         return Position(
-            board=self.board.translate(SWAP_COLORS),
+            board=self.board,
             n=self.n+1,
-            komi=-self.komi,
-            caps=(self.caps[1], self.caps[0]),
-            groups=(self.groups[1], self.groups[0]),
+            komi=self.komi,
+            caps=self.caps,
+            groups=self.groups,
             ko=None,
             last=None,
-            last2=None,
+            last2=self.last,
             player1turn=not self.player1turn,
         )
 
@@ -256,46 +252,55 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         if self.board[c] != '.':
             return None
 
-        working_board = place_stone(self.board, 'X', c)
-        new_X_groups, new_O_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
+        AP_color = 'X' if self.player1turn else 'O'
 
-        # process opponent's captures first, then your own suicides.
+        working_board = place_stone(self.board, AP_color, c)
+        new_AP_groups, new_OP_groups = update_groups(working_board, self.groups[0], self.groups[1], c)
+
+        # process OP captures first, then your own suicides.
         # As stones are removed, liberty counts become inaccurate.
-        O_captures = set()
-        surviving_O_groups = []
-        for group in new_O_groups:
+        OP_captures = set()
+        surviving_OP_groups = []
+        for group in new_OP_groups:
             if not group.liberties:
-                O_captures |= group.stones
+                OP_captures |= group.stones
                 working_board = capture_stones(working_board, group.stones)
             else:
-                surviving_O_groups.append(group)
+                surviving_OP_groups.append(group)
 
-        final_O_groups = surviving_O_groups
-        final_X_groups = new_X_groups
-        if O_captures:
-            # recalculate liberties for groups adjacent to a captured O group
-            coords_with_updates = find_neighbors('X', working_board, O_captures)
-            final_X_groups = [g if not (g.stones & coords_with_updates)
+        final_OP_groups = surviving_OP_groups
+        final_AP_groups = new_AP_groups
+        if OP_captures:
+            # recalculate liberties for groups adjacent to a captured OP group
+            coords_with_updates = find_neighbors(AP_color, working_board, OP_captures)
+            final_AP_groups = [g if not (g.stones & coords_with_updates)
                 else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
-                for g in new_X_groups]
+                for g in new_AP_groups]
         else:
             # suicide can only happen if no O captures were made
-            for group in new_X_groups:
+            for group in new_AP_groups:
                 if not group.liberties:
                     # suicides are illegal!
                     return None
 
-        if len(O_captures) == 1 and is_eyeish(self.board, c) == 'O':
-            ko = list(O_captures)[0]
+        if len(OP_captures) == 1 and is_eyeish(self.board, c) == 'O':
+            ko = list(OP_captures)[0]
         else:
             ko = None
 
+        if self.player1turn:
+            groups = (final_AP_groups, final_OP_groups)
+            caps = (self.caps[0] + len(OP_captures), self.caps[1])
+        else:
+            groups = (final_OP_groups, final_AP_groups)
+            caps = (self.caps[0], self.caps[1] + len(OP_captures))
+
         return Position(
-            board=working_board.translate(SWAP_COLORS),
+            board=working_board,
             n=self.n + 1,
-            komi=-self.komi,
-            caps=(self.caps[1], self.caps[0] + len(O_captures)),
-            groups=(final_O_groups, final_X_groups),
+            komi=self.komi,
+            caps=caps,
+            groups=groups,
             ko=ko,
             last=c,
             last2=self.last,
@@ -303,7 +308,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         )
 
     def score(self):
-        'Returns score from player 1 perspective, regardless of turn.'
+        'Returns score from B perspective'
         working_board = self.board
         while '.' in working_board:
             c = working_board.find('.')
@@ -320,10 +325,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                 territory_color = '?' # dame, or seki
             working_board = working_board.replace('#', territory_color)
 
-        raw_score = working_board.count('X') - working_board.count('O') - self.komi
-        if self.n % 2 == 1:
-            raw_score *= -1
-
-        return raw_score
+        return working_board.count('X') - working_board.count('O') - self.komi
 
 set_board_size(9)

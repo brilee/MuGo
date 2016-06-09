@@ -135,14 +135,14 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board('''
-            .OO....XX
-            O........
+            .XX....OO
+            X........
         ''' + EMPTY_ROW * 7)
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
-            caps=(2,1),
+            komi=6.5,
+            caps=(1,2),
             groups=go.deduce_groups(expected_board),
             ko=None,
             last=pc('C9'),
@@ -171,16 +171,16 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board(EMPTY_ROW * 5 + '''
-            OOOO.....
-            O..O.....
-            .O.O.....
-            ..OO.....
+            XXXX.....
+            X..X.....
+            .X.X.....
+            ..XX.....
         ''')
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
-            caps=(2, 7),
+            komi=6.5,
+            caps=(7, 2),
             groups=go.deduce_groups(expected_board),
             ko=None,
             last=pc('B2'),
@@ -207,13 +207,13 @@ class TestPosition(unittest.TestCase):
             player1turn=True,
         )
         expected_board = go.load_board('''
-            O.O......
-            XO.......
+            X.X......
+            OX.......
         ''' + EMPTY_ROW * 7)
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
+            komi=6.5,
             caps=(2, 2),
             groups=go.deduce_groups(expected_board),
             ko=pc('B9'),
@@ -253,21 +253,21 @@ class TestScoring(unittest.TestCase):
             self.assertEqual(position.score(), expected_score)
 
             board = go.load_board('''
-                OOO......
-                XXOO.....
-                XXXO...O.
-                XOO......
-                XXOOOOOO.
-                XXXOXOXOO
-                .X.XXOXXO
-                .X.X.XXOO
-                ......XXX
+                XXX......
+                OOXX.....
+                OOOX...X.
+                OXX......
+                OOXXXXXX.
+                OOOXOXOXX
+                .O.OOXOOX
+                .O.O.OOXX
+                ......OOO
             ''')
             position = go.Position(
                 board=board,
                 n=55,
-                komi=-6.5,
-                caps=(5, 2),
+                komi=6.5,
+                caps=(2, 5),
                 groups=go.deduce_groups(board),
                 ko=None,
                 last=None,
