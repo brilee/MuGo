@@ -195,7 +195,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
     '''
     @staticmethod
     def initial_state():
-        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=(set(), set()), ko=None, last=None, last2=None)
+        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=(set(), set()), ko=None, last=None, last2=None, player1turn=True)
 
     def possible_moves(self):
         return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)]
