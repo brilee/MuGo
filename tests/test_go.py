@@ -132,6 +132,7 @@ class TestPosition(unittest.TestCase):
             ko=None,
             last=None,
             last2=None,
+            player1turn=True,
         )
         expected_board = go.load_board('''
             .OO....XX
@@ -146,6 +147,7 @@ class TestPosition(unittest.TestCase):
             ko=None,
             last=pc('C9'),
             last2=None,
+            player1turn=False,
         )
         actual_position = start_position.play_move(pc('C9'))
         self.assertEqualPositions(actual_position, expected_position)
@@ -166,6 +168,7 @@ class TestPosition(unittest.TestCase):
             ko=None,
             last=None,
             last2=None,
+            player1turn=True,
         )
         expected_board = go.load_board(EMPTY_ROW * 5 + '''
             OOOO.....
@@ -182,6 +185,7 @@ class TestPosition(unittest.TestCase):
             ko=None,
             last=pc('B2'),
             last2=None,
+            player1turn=False,
         )
         actual_position = start_position.play_move(pc('B2'))
         self.assertEqualPositions(actual_position, expected_position)
@@ -200,6 +204,7 @@ class TestPosition(unittest.TestCase):
             ko=None,
             last=None,
             last2=None,
+            player1turn=True,
         )
         expected_board = go.load_board('''
             O.O......
@@ -214,6 +219,7 @@ class TestPosition(unittest.TestCase):
             ko=pc('B9'),
             last=pc('A9'),
             last2=None,
+            player1turn=False,
         )
         actual_position = start_position.play_move(pc('A9'))
 
@@ -241,6 +247,7 @@ class TestScoring(unittest.TestCase):
                 ko=None,
                 last=None,
                 last2=None,
+                player1turn=True,
             )
             expected_score = 1.5
             self.assertEqual(position.score(), expected_score)
@@ -265,6 +272,7 @@ class TestScoring(unittest.TestCase):
                 ko=None,
                 last=None,
                 last2=None,
+                player1turn=False,
             )
             expected_score = 2.5
             self.assertEqual(position.score(), expected_score)

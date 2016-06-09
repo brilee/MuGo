@@ -185,7 +185,7 @@ def update_groups(board, existing_X_groups, existing_O_groups, c):
 
     return updated_X_groups, updated_O_groups
 
-class Position(namedtuple('Position', 'board n komi caps groups ko last last2')):
+class Position(namedtuple('Position', 'board n komi caps groups ko last last2 player1turn')):
     '''
     board: a string representation of the board
     n: an int representing moves played so far
@@ -224,10 +224,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2'))
         return annotated_board + details
 
     @property
-    def player1turn(self):
-        return self.n % 2 == 0
-
-    @property
     def player1wins(self):
         return False
 
@@ -245,6 +241,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2'))
             ko=None,
             last=None,
             last2=None,
+            player1turn=not self.player1turn,
         )
 
     def play_move(self, c):
@@ -302,6 +299,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2'))
             ko=ko,
             last=c,
             last2=self.last,
+            player1turn=not self.player1turn,
         )
 
     def score(self):
