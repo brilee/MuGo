@@ -70,4 +70,6 @@ class TestSgfWrapper(GoPositionTestCase):
         sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
         positions_w_context = list(sgf.get_main_branch())
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
+        self.assertFalse(positions_w_context[-1].is_usable())
+        self.assertTrue(positions_w_context[-2].is_usable())
 

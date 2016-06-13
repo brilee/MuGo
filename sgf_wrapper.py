@@ -100,7 +100,7 @@ class SgfWrapper(object):
 class PositionWithContext(namedtuple("SgfPosition", "position next_move result")):
     '''
     Wrapper around go.Position.
-    Stores a position, the next_move that came next, and the eventual result.
+    Stores a position, the move that came next, and the eventual result.
     '''
-    def valid(self):
+    def is_usable(self):
         return self.position is not None and self.next_move is not None and self.result != "Void"
