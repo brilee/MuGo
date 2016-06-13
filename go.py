@@ -215,7 +215,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         annotated_board_contents = reversed([''.join(r) for r in zip(row_labels, reversed(raw_board_contents), row_labels)])
         header_footer_rows = [' ' + COLUMNS[:N] + ' ']
         annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
-        details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n + 1, *captures)
+        details = "\nMove: {}. Captures B: {} W: {}\n".format(self.n + 1, *captures)
         return annotated_board + details
 
     @property

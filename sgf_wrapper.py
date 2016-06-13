@@ -47,9 +47,9 @@ def get_next_move(node):
         return None, None
     props = node.next.properties
     if 'W' in props:
-        return 'W', props['W']
+        return 'W', props['W'][0]
     else:
-        return 'B', props['B']
+        return 'B', props['B'][0]
 
 # Play stones should have just 1 stone. Play is not necessarily alternating;
 # sometimes B plays repeatedly at the start in free handicap placement.
@@ -104,3 +104,6 @@ class PositionWithContext(namedtuple("SgfPosition", "position next_move result")
     '''
     def is_usable(self):
         return self.position is not None and self.next_move is not None and self.result != "Void"
+
+    def __str__(self):
+        return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
