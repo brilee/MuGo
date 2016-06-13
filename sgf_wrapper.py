@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import go
 from go import Position, place_stone, deduce_groups, parse_sgf_coords as pc
 import sgf
@@ -37,6 +39,15 @@ def handle_add_stones(pos, node):
         working_board = place_stone(working_board, 'W', pc(w))
     return pos._replace(board=working_board, groups=deduce_groups(working_board))
 
+def get_next_move(node):
+    if not node.next:
+        return None, None
+    props = node.next.properties
+    if 'W' in props:
+        return 'W', props['W']
+    else:
+        return 'B', props['B']
+
 # Play stones should have just 1 stone. Play is not necessarily alternating;
 # sometimes B plays repeatedly at the start in free handicap placement.
 # Must look at next node to figure out who was "supposed" to have played.
@@ -46,12 +57,11 @@ def handle_play_stones(pos, node):
         pos = pos.play_move('W', pc(props['W'][0]))
     elif 'B' in props:
         pos = pos.play_move('B', pc(props['B'][0]))
-    if node.next:
-        props = node.next.properties
-        if pos.player1turn and 'W' in props:
-            pos = pos._replace(player1turn=False)
-        elif not pos.player1turn and 'B' in props:
-            pos = pos._replace(player1turn=True)
+    next_player, _ = get_next_move(node)
+    if next_player == 'W' and pos.player1turn:
+        pos = pos._replace(player1turn=False)
+    elif next_player == 'B' and not pos.player1turn:
+        pos = pos._replace(player1turn=True)
     return pos
 
 class SgfWrapper(object):
@@ -59,7 +69,7 @@ class SgfWrapper(object):
     Wrapper for sgf files, exposing contents as go.Position instances
     with open(filename) as f:
         sgf = sgf_wrapper.SgfWrapper(f.read())
-        for position in sgf.get_main_branch():
+        for position, move, result in sgf.get_main_branch():
             print(position)
     '''
 
@@ -80,6 +90,14 @@ class SgfWrapper(object):
         while pos is not None and current_node is not None:
             pos = handle_add_stones(pos, current_node)
             pos = handle_play_stones(pos, current_node)
+            _, next_move = get_next_move(current_node)
             current_node = current_node.next
-            yield pos
+            yield PositionWithContext(pos, next_move, self.result)
 
+class PositionWithContext(namedtuple("SgfPosition", "position next_move result")):
+    '''
+    Wrapper around go.Position.
+    Stores a position, the next_move that came next, and the eventual result.
+    '''
+    def valid(self):
+        return self.position is not None and self.next_move is not None and self.result != "Void"

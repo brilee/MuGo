@@ -41,8 +41,8 @@ class TestSgfWrapper(GoPositionTestCase):
             player1turn=False,
         )
         sgf = sgf_wrapper.SgfWrapper(JAPANESE_HANDICAP_SGF)
-        positions = list(sgf.get_main_branch())
-        self.assertEqualPositions(final_position, positions[-1])
+        positions_w_context = list(sgf.get_main_branch())
+        self.assertEqualPositions(final_position, positions_w_context[-1].position)
 
     def test_chinese_handicap_handling(self):
         final_board = go.load_board('''
@@ -68,6 +68,6 @@ class TestSgfWrapper(GoPositionTestCase):
             player1turn=False,
         )
         sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
-        positions = list(sgf.get_main_branch())
-        self.assertEqualPositions(final_position, positions[-1])
+        positions_w_context = list(sgf.get_main_branch())
+        self.assertEqualPositions(final_position, positions_w_context[-1].position)
 
