@@ -37,7 +37,10 @@ def handle_add_stones(pos, node):
         working_board = place_stone(working_board, 'B', pc(b))
     for w in white_stones_added:
         working_board = place_stone(working_board, 'W', pc(w))
-    return pos._replace(board=working_board, groups=deduce_groups(working_board))
+    if black_stones_added or white_stones_added:
+        return pos._replace(board=working_board, groups=deduce_groups(working_board))
+    else:
+        return pos
 
 def get_next_move(node):
     if not node.next:
