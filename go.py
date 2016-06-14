@@ -27,7 +27,10 @@ SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 SWAP_COLORS = str.maketrans('BW', 'WB')
 
 def set_board_size(n):
-    'Hopefully nobody tries to run both 9x9 and 19x19 game instances at once.'
+    '''
+    Hopefully nobody tries to run both 9x9 and 19x19 game instances at once.
+    Also, never do "from go import N, W, ALL_COORDS, EMPTY_BOARD".
+    '''
     global N, W, ALL_COORDS, EMPTY_BOARD
     N = n
     W = n + 1
