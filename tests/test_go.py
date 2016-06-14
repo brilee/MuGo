@@ -2,7 +2,6 @@ import unittest
 import go
 from test_utils import GoPositionTestCase
 
-# This test file assumes a 9x9 board configuration.
 go.set_board_size(9)
 
 MANUAL_EMPTY_BOARD = '''         
