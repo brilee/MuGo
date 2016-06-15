@@ -47,9 +47,9 @@ def get_next_move(node):
         return None, None
     props = node.next.properties
     if 'W' in props:
-        return 'W', props['W'][0]
+        return 'W', props['W'][0] or None
     else:
-        return 'B', props['B'][0]
+        return 'B', props['B'][0] or None
 
 # Play stones should have just 1 stone. Play is not necessarily alternating;
 # sometimes B plays repeatedly at the start in free handicap placement.

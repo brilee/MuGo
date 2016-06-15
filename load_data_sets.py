@@ -1,7 +1,23 @@
+from collections import namedtuple
 import os
 import numpy as np
 
+import go
 import sgf_wrapper
+
+SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+def parse_sgf_to_flat(sgf):
+    return go.N * SGF_COLUMNS.index(sgf[0]) + SGF_COLUMNS.index(sgf[1])
+
+def make_onehot(dense_labels, num_classes):
+    dense_labels = np.fromiter(dense_labels, dtype=np.int16)
+    num_labels = dense_labels.shape[0]
+    index_offset = np.arange(num_labels) * num_classes
+    labels_one_hot = np.zeros((num_labels, num_classes))
+    labels_one_hot.flat[index_offset + dense_labels.ravel()] = 1
+    return labels_one_hot
+
 
 def load_sgf_positions(*dataset_names):
     for dataset in dataset_names:
@@ -15,6 +31,14 @@ def load_sgf_positions(*dataset_names):
                     if position_w_context.is_usable():
                         yield position_w_context
 
+def partition_sets(stuff):
+    number_of_things = len(stuff)
+    cutoff = min([number_of_things // 5, 10000])
+    test = stuff[:cutoff]
+    validation = stuff[cutoff:2*cutoff]
+    training = stuff[2*cutoff:]
+    return test, validation, training
+
 def extract_features(features, positions):
     num_feature_planes = sum(f.planes for f in features)
     num_positions = len(positions)
@@ -22,3 +46,40 @@ def extract_features(features, positions):
     for i, pos in enumerate(positions):
         output[i] = np.concatenate([feature.extract(pos) for feature in features], axis=2)
     return output
+
+class DataSet(object):
+    def __init__(self, input, labels):
+        self.input = input
+        self.labels = labels
+        assert input.shape[0] == labels.shape[0], "Didn't pass in same number of inputs and labels."
+        self.data_size = input.shape[0]
+        self._epochs_completed = 0
+        self._index_within_epoch = 0
+
+    def get_batch(self, batch_size):
+        assert batch_size < self.data_size
+        if self._index_within_epoch + batch_size > self.data_size:
+            # Shuffle the data and start over
+            perm = np.arange(self.data_size)
+            np.random.shuffle(perm)
+            self.input = self.input[perm]
+            self.labels = self.labels[perm]
+            self._index_within_epoch = 0
+            self._epochs_completed += 1
+        start = self._index_within_epoch
+        end = start + batch_size
+        self._index_within_epoch += batch_size
+        return self.input[start:end], self.labels[start:end]
+
+DataSets = namedtuple("DataSets", "test validation training input_planes")
+
+def load_data_sets(features, *dataset_names):
+    positions_w_context = list(load_sgf_positions(*dataset_names))
+    test, validation, training = partition_sets(positions_w_context)
+    datasets = []
+    for dataset in (test, validation, training):
+        positions, next_moves, results = zip(*dataset)
+        encoded_moves = make_onehot(map(parse_sgf_to_flat, next_moves), go.N ** 2)
+        extracted_features = extract_features(features, positions)
+        datasets.append(DataSet(extracted_features, encoded_moves))
+    return DataSets(*(datasets + [extracted_features.shape[-1]]))
