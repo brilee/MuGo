@@ -23,6 +23,13 @@ import numpy as np
 import go
 RAW_BOARD_EXTRACTOR_RE = re.compile(r'[^BW.]+')
 
+def make_onehot(feature, planes):
+    onehot_features = np.zeros(feature.shape + (planes,))
+    for i in range(planes - 1):
+        onehot_features[feature == i+1, i] = 1
+    onehot_features[feature >= planes, planes-1] = 1
+    return onehot_features
+
 class Feature(object):
     planes = 1
     
@@ -58,12 +65,5 @@ class LibertyFeature(Feature):
             padded_features[list(g.stones)] = len(g.liberties)
 
         # remove padding from representation
-        features = padded_features.reshape([go.W, go.W])[1:-1, :-1]
-
-        planes = LibertyFeature.planes
-
-        onehot_features = np.zeros([go.N, go.N, planes])
-        for i in range(planes - 1):
-            onehot_features[features == i+1, i] = 1
-        onehot_features[features >= planes, planes-1] = 1
-        return onehot_features
+        features = padded_features.reshape([go.W, go.W])[1:, :-1]
+        return make_onehot(features, LibertyFeature.planes)
