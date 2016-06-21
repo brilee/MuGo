@@ -57,9 +57,9 @@ def get_next_move(node):
 def handle_play_stones(pos, node):
     props = node.properties
     if 'W' in props:
-        pos = pos.play_move('W', pc(props['W'][0]))
+        pos = pos.play_move(pc(props['W'][0]))
     elif 'B' in props:
-        pos = pos.play_move('B', pc(props['B'][0]))
+        pos = pos.play_move(pc(props['B'][0]))
     next_player, _ = get_next_move(node)
     if next_player == 'W' and pos.player1turn:
         pos = pos._replace(player1turn=False)

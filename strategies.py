@@ -1,118 +1,61 @@
 import random
 
-def DEFAULT_VALUE_FUNC(board):
-    if board.player1wins: return 1
-    if board.player2wins: return -1
-    return 0
+import gtp
 
+import go
 
-class BaseStrategy(object):
-    '''
-    Takes in a board implementing the following interface
-    class Board:
-        possible_moves(self) => list(Move)
-        update(self, Move) => Board | None (for invalid move)
-        @property player1turn(self) => bool
-        @property player1wins(self) => bool
-        @property player2wins(self) => bool
-    '''
-    def __init__(self, value_f=DEFAULT_VALUE_FUNC):
-        'Override the default value function to get better evaluations'
-        self.value = value_f
+def parse_pygtp_coords(t):
+    'Interprets coords in the format (1, 1), with (1,1) being the bottom left'
+    if t == (0, 0):
+        return None
+    rows_from_top = go.N - t[1]
+    return go.W + go.W * rows_from_top + t[0] - 1
 
-    def suggest_move(self, board):
-        if not board.possible_moves():
-            return None
-        return self._suggest_move(board)
+def unparse_pygtp_coords(c):
+    if c is None:
+        return (0, 0)
+    c = c - go.W
+    row, column = divmod(c, go.W)
+    return column + 1, go.N - row
 
-    def _suggest_move(self, board):
-        '''
-        Given a board position, suggest a move.
-        '''
+class GtpInterface(object):
+    def __init__(self):
+        self.size = 9
+        self.position = None
+        self.komi = 6.5
+        self.clear()
+
+    def set_size(self, n):
+        self.size = n
+        go.set_board_size(n)
+        self.clear()
+
+    def set_komi(self, komi):
+        self.komi = komi
+        self.position = self.position._replace(komi=komi)
+
+    def clear(self):
+        self.position = go.Position.initial_state()._replace(komi=self.komi)
+
+    def accomodate_out_of_turn(self, color):
+        player1turn = (color == gtp.BLACK)
+        if player1turn != self.position.player1turn:
+            self.position = self.position._replace(player1turn=not self.position.player1turn)
+
+    def make_move(self, color, vertex):
+        coords = parse_pygtp_coords(vertex)
+        self.accomodate_out_of_turn(color)
+        self.position = self.position.play_move(coords)
+        return self.position is not None
+
+    def get_move(self, color):
+        self.accomodate_out_of_turn(color)
+        move = self.suggest_move(self.position)
+        return unparse_pygtp_coords(move)
+
+    def suggest_move(self, position):
         raise NotImplementedError
 
-class InteractivePlayer(BaseStrategy):
-    def _suggest_move(self, board):
-        while True:
-            player_input = input("It's your turn! Play a move.\n")
-            new_board = board.update(player_input)
-            if new_board is None:
-                print("Invalid move")
-            else:
-                return player_input
-
-class RandomPlayer(BaseStrategy):
-    def _suggest_move(self, board):
-        return random.choice(board.possible_moves())
-
-class OneMoveLookahead(BaseStrategy):
-    def _suggest_move(self, board):
-        moves = board.possible_moves()
-        strategy = max if board.player1turn else min
-        moves_with_valuation = [
-            (self.value(board.update(move)), move)
-            for move in moves
-        ]
-        return strategy(moves_with_valuation)[1]
-
-class MinMaxPlayer(BaseStrategy):
-    def _suggest_move(self, board, MAX_DEPTH=4):
-        moves = board.possible_moves()
-        random.shuffle(moves)
-        strategy = max if board.player1turn else min
-        moves_with_valuation = [
-            (self.minimax(board.update(move), MAX_DEPTH), move)
-            for move in moves
-        ]
-        return strategy(moves_with_valuation)[1]
-
-    def minimax(self, board, depth):
-        if depth == 0 or board.player1wins or board.player2wins:
-            return self.value(board)
-
-        possible_moves = board.possible_moves()
-        if not possible_moves:
-            return self.value(board)
-
-        strategy = max if board.player1turn else min
-        moves_with_valuation = [
-            (self.minimax(board.update(move), depth-1), move)
-            for move in board.possible_moves()
-        ]
-        return strategy(moves_with_valuation)[0]
-
-class NegamaxABPlayer(BaseStrategy):
-    def _suggest_move(self, board, MAX_DEPTH=6):
-        moves = board.possible_moves()
-        random.shuffle(moves)
-        moves_with_valuation = [
-            (-self.negamax(board.update(move), float('-inf'), float('inf'), MAX_DEPTH), move)
-            for move in moves
-        ]
-        return max(moves_with_valuation)[1]
-
-    def negamax(self, board, alpha, beta, depth):
-        inverted = 1 if board.player1turn else -1
-        if depth == 0 or board.player1wins or board.player2wins:
-            return inverted * self.value(board)
-
-        moves = board.possible_moves()
-        best_value_sofar = float('-inf')
-        for move in moves:
-            value = -self.negamax(board.update(move), -beta, -alpha, depth-1)
-            best_value_sofar = max(value, best_value_sofar)
-            alpha = max(alpha, value)
-            if alpha > beta:
-                break
-        return best_value_sofar
-
-class MCTS(BaseStrategy):
-    pass
-
-AVAILABLE_STRATEGIES = {
-    'interactive': InteractivePlayer(),
-    'random': RandomPlayer(),
-    'onemove-lookahead': OneMoveLookahead(),
-    'minimax': MinMaxPlayer(),
-    'minimax-optimized': NegamaxABPlayer()
-}
+class RandomPlayer(GtpInterface):
+    def suggest_move(self, position):
+        return random.choice(position.possible_moves())

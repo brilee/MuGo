@@ -204,7 +204,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)]
 
     def update(self, input):
-        return self.play_move('B' if self.player1turn else 'W', parse_coords(input))
+        return self.play_move(parse_coords(input))
 
     def __str__(self):
         if self.ko is not None:
@@ -242,7 +242,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             player1turn=not self.player1turn,
         )
 
-    def play_move(self, color, c):
+    def play_move(self, c):
         # Obeys CGOS Rules of Play. In short:
         # No suicides
         # Chinese/area scoring
