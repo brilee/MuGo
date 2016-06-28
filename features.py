@@ -42,12 +42,11 @@ class StoneColorFeature(Feature):
 
     @staticmethod
     def extract(position):
-        raw_board = RAW_BOARD_EXTRACTOR_RE.sub('', position.board).encode('ascii')
-        board = np.frombuffer(raw_board, dtype=np.int8).reshape([go.N, go.N])
+        board = position.board
         features = np.zeros([go.N, go.N, 3], dtype=np.float32)
-        features[board == ord('B'), 0] = 1
-        features[board == ord('W'), 1] = 1
-        features[board == ord('.'), 2] = 1
+        features[board == 1, 0] = 1
+        features[board == 0, 1] = 1
+        features[board == -1, 2] = 1
         return features
 
 class LibertyFeature(Feature):
@@ -59,11 +58,9 @@ class LibertyFeature(Feature):
     
     @staticmethod
     def extract(position):
-        # the groups' coordinates are with respect to a padded board.
-        padded_features = np.zeros([(go.W)**2], dtype=np.float32)
+        features = np.zeros([go.N, go.N], dtype=np.float32)
         for g in itertools.chain(*position.groups):
-            padded_features[list(g.stones)] = len(g.liberties)
-
-        # remove padding from representation
-        features = padded_features.reshape([go.W, go.W])[1:, :-1]
+            libs = len(g.liberties)
+            for s in g.stones:
+                features[s] = libs
         return make_onehot(features, LibertyFeature.planes)
