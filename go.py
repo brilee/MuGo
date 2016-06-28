@@ -32,6 +32,7 @@ def set_board_size(n):
     Also, never do "from go import N, W, ALL_COORDS, EMPTY_BOARD".
     '''
     global N, W, ALL_COORDS, EMPTY_BOARD
+    if N == n: return
     N = n
     W = n + 1
     ALL_COORDS = [parse_coords(col+row) for col in COLUMNS[:N] for row in map(str, range(1, N+1))]
