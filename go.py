@@ -1,11 +1,10 @@
-import re
 from collections import namedtuple
 import itertools
 
 import numpy as np
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
 # AP and OP refer to "active player" and "other player".
-WHITE, EMPTY, BLACK, FILL, KO = range(-1, 4)
+WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
 # Other special values:
 
 # A Coordinate is a tuple index into the board. 
@@ -13,8 +12,7 @@ WHITE, EMPTY, BLACK, FILL, KO = range(-1, 4)
 
 # When representing the numpy array as a board, (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
 
-N = 9
-W = N+1
+N = None
 ALL_COORDS = [] # initialized later on
 EMPTY_BOARD = None # initialized later on
 NEIGHBORS = {} # initialized later on
@@ -38,18 +36,13 @@ def set_board_size(n):
     NEIGHBORS = {(x, y): list(filter(check_bounds, [(x+1, y), (x-1, y), (x, y+1), (x, y-1)])) for x, y in ALL_COORDS}
     DIAGONALS = {(x, y): list(filter(check_bounds, [(x+1, y+1), (x+1, y-1), (x-1, y+1), (x-1, y-1)])) for x, y in ALL_COORDS}
 
-def load_board(string):
-    string = re.sub(r'[^BW\.#]+', '', string)
-    assert len(string) == N ** 2, "Board to load didn't have right dimensions"
-    return '\n'.join([' ' * N] + [string[k*N:(k+1)*N] for k in range(N)] + [' ' * W])
-
 def parse_sgf_coords(s):
     'Interprets coords in the format "aj", with "aj" being top right quadrant'
     if not s:
         return None
-    return tuple(map(SGF_COLUMNS.index, s))
+    return SGF_COLUMNS.index(s[1]), SGF_COLUMNS.index(s[0])
 
-def parse_coords(s):
+def parse_kgs_coords(s):
     'Interprets coords in the format "H3", with A1 being lower left quadrant.'
     if s == 'pass':
         return None
@@ -117,7 +110,7 @@ def is_likely_eye(board, c):
 
     diagonal_faults = 0
     diagonal_owners = [board[d] for d in DIAGONALS[c]]
-    if any(d.isspace() for d in diagonal_owners):
+    if len(diagonal_owners) < 4:
         diagonal_faults += 1
     diagonal_faults += len([d for d in diagonal_owners if d == opposite_color])
 
@@ -195,9 +188,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
 
     def possible_moves(self):
         return [c for c in ALL_COORDS if self.board[c] == '.' and not is_likely_eye(self.board, c)]
-
-    def update(self, input):
-        return self.play_move(parse_coords(input))
 
     def __str__(self):
         pretty_print_map = {
@@ -291,7 +281,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                     # suicides are illegal!
                     return None
 
-        if len(OP_captures) == 1 and is_eyeish(self.board, c) == 'W':
+        if len(OP_captures) == 1 and is_eyeish(self.board, c) == WHITE:
             ko = list(OP_captures)[0]
         else:
             ko = None
@@ -318,21 +308,22 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
     def score(self):
         'Returns score from B perspective'
         working_board = np.copy(self.board)
-        while '.' in working_board:
-            c = working_board.find('.')
+        while EMPTY in working_board:
+            unassigned_spaces = np.where(working_board == EMPTY)
+            c = unassigned_spaces[0][0], unassigned_spaces[1][0]
             working_board, territory = flood_fill(working_board, c)
             borders = set(itertools.chain(*(NEIGHBORS[t] for t in territory)))
             border_colors = set(working_board[b] for b in borders)
-            X_border = 'B' in border_colors
-            O_border = 'W' in border_colors
+            X_border = BLACK in border_colors
+            O_border = WHITE in border_colors
             if X_border and not O_border:
-                territory_color = 'B'
+                territory_color = BLACK
             elif O_border and not X_border:
-                territory_color = 'W'
+                territory_color = WHITE
             else:
-                territory_color = '?' # dame, or seki
-            working_board = working_board.replace('#', territory_color)
+                territory_color = UNKNOWN # dame, or seki
+            working_board[working_board == FILL] = territory_color
 
-        return working_board.count('B') - working_board.count('W') - self.komi
+        return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
 
 set_board_size(9)

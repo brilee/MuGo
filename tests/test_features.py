@@ -2,10 +2,11 @@ import unittest
 
 import features
 import go
+from test_utils import load_board
 
 go.set_board_size(9)
 EMPTY_ROW = '.' * go.N + '\n'
-TEST_BOARD = go.load_board('''
+TEST_BOARD = load_board('''
 .B.....WW
 B........
 BBBBBBBBB

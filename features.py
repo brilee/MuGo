@@ -44,9 +44,9 @@ class StoneColorFeature(Feature):
     def extract(position):
         board = position.board
         features = np.zeros([go.N, go.N, 3], dtype=np.float32)
-        features[board == 1, 0] = 1
-        features[board == 0, 1] = 1
-        features[board == -1, 2] = 1
+        features[board == go.BLACK, 0] = 1
+        features[board == go.WHITE, 1] = 1
+        features[board == go.EMPTY, 2] = 1
         return features
 
 class LibertyFeature(Feature):

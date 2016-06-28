@@ -1,11 +1,11 @@
 import go
 import sgf_wrapper
-from test_utils import GoPositionTestCase
+from test_utils import GoPositionTestCase, load_board
 
 go.set_board_size(9)
-pc = go.parse_coords
+pc = go.parse_kgs_coords
 
-JAPANESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Japanese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]AB[gc][cg];W[ee];B[gg])"
+JAPANESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Japanese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]AB[gc][cg];W[ee];B[dg])"
 
 CHINESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Chinese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]RE[B+39.50];B[gc];B[cg];W[ee];B[gg];W[eg];B[ge];W[ce];B[ec];W[cc];B[dd];W[de];B[cd];W[bd];B[bc];W[bb];B[be];W[ac];B[bf];W[dh];B[ch];W[ci];B[bi];W[di];B[ah];W[gh];B[hh];W[fh];B[hg];W[gi];B[fg];W[dg];B[ei];W[cf];B[ef];W[ff];B[fe];W[bg];B[bh];W[af];B[ag];W[ae];B[ad];W[ae];B[ed];W[db];B[df];W[eb];B[fb];W[ea];B[fa])"
 
@@ -18,14 +18,14 @@ class TestSgfWrapper(GoPositionTestCase):
         self.assertEqual(sgf.komi, 5.5)
 
     def test_japanese_handicap_handling(self):
-        final_board = go.load_board('''
+        final_board = load_board('''
             .........
             .........
             ......B..
             .........
             ....W....
             .........
-            ..B...B..
+            ..BB.....
             .........
             .........
         ''')
@@ -45,7 +45,7 @@ class TestSgfWrapper(GoPositionTestCase):
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
 
     def test_chinese_handicap_handling(self):
-        final_board = go.load_board('''
+        final_board = load_board('''
             ....WB...
             .W.WWB...
             W.W.B.B..

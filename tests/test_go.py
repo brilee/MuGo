@@ -1,59 +1,50 @@
+import numpy as np
 import unittest
 import go
-from test_utils import GoPositionTestCase
+from test_utils import GoPositionTestCase, load_board
 
 go.set_board_size(9)
 
-MANUAL_EMPTY_BOARD = '''         
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-.........
-          '''
-
 EMPTY_ROW = '.' * go.N + '\n'
-TEST_BOARD = go.load_board('''
+TEST_BOARD = load_board('''
 .B.....WW
 B........
 ''' + EMPTY_ROW * 7)
 
-pc = go.parse_coords
+pc = go.parse_kgs_coords
 def pc_set(string):
     return set(map(pc, string.split()))
 
-class TestGoBoard(unittest.TestCase):
+class TestGoBoard(GoPositionTestCase):
     def test_load_board(self):
-        self.assertEqual(len(go.EMPTY_BOARD), (go.W * (go.W + 1)))
-        self.assertEqual(go.EMPTY_BOARD, MANUAL_EMPTY_BOARD)
-        self.assertEqual(go.EMPTY_BOARD, go.load_board('. \n' * go.N ** 2))
+        self.assertEqualNPArray(go.EMPTY_BOARD, np.zeros([go.N, go.N]))
+        self.assertEqualNPArray(go.EMPTY_BOARD, load_board('. \n' * go.N ** 2))
 
     def test_parsing(self):
-        self.assertEqual(pc('A9'), go.W)
-        self.assertEqual(go.parse_sgf_coords('aa'), go.W)
+        self.assertEqual(pc('A9'), (0, 0))
+        self.assertEqual(go.parse_sgf_coords('aa'), (0, 0))
+        self.assertEqual(pc('A3'), (6, 0))
+        self.assertEqual(go.parse_sgf_coords('ac'), (2, 0))
         self.assertEqual(pc('D4'), go.parse_sgf_coords('df'))
 
     def test_neighbors(self):
         corner = pc('A1')
-        neighbors = [go.EMPTY_BOARD[c] for c in go.neighbors(corner)]
-        self.assertEqual(sum(1 for n in neighbors if n.isspace()), 2)
+        neighbors = [go.EMPTY_BOARD[c] for c in go.NEIGHBORS[corner]]
+        self.assertEqual(len(neighbors), 2)
 
         side = pc('A2')
-        side_neighbors = [go.EMPTY_BOARD[c] for c in go.neighbors(side)]
-        self.assertEqual(sum(1 for n in side_neighbors if n.isspace()), 1)
+        side_neighbors = [go.EMPTY_BOARD[c] for c in go.NEIGHBORS[side]]
+        self.assertEqual(len(side_neighbors), 3)
 
-class TestGroupHandling(unittest.TestCase):
+class TestGroupHandling(GoPositionTestCase):
     def test_flood_fill(self):
-        expected_board = go.load_board('''
+        expected_board = load_board('''
             .B.....##
             B........
         ''' + EMPTY_ROW * 7)
-        actual_board, _ = go.flood_fill(TEST_BOARD, pc('H9'))
-        self.assertEqual(expected_board, actual_board)
+        test_board_copy = np.copy(TEST_BOARD)
+        actual_board, _ = go.flood_fill(test_board_copy, pc('H9'))
+        self.assertEqualNPArray(expected_board, actual_board)
 
     def test_find_liberties(self):
         stones = pc_set('H9 J9')
@@ -83,7 +74,7 @@ class TestGroupHandling(unittest.TestCase):
 
     def test_update_groups(self):
         existing_X_groups, existing_O_groups = go.deduce_groups(TEST_BOARD)
-        updated_board = go.place_stone(TEST_BOARD, 'B', pc('A9'))
+        updated_board = go.place_stone(TEST_BOARD, go.BLACK, pc('A9'))
         updated_X_groups, updated_O_groups = go.update_groups(updated_board, existing_X_groups, existing_O_groups, pc('A9'))
         self.assertEqual(updated_X_groups, [go.Group(
             stones=pc_set('A8 A9 B9'),
@@ -93,20 +84,20 @@ class TestGroupHandling(unittest.TestCase):
 
 class TestEyeHandling(unittest.TestCase):
     def test_eyeish(self):
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), 'B')
+        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), go.BLACK)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B8')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('E5')), None)
 
     def test_likely_eye(self):
-        board = go.load_board('''
+        board = load_board('''
             BB.B.....
             B.BW.....
             .BWW.....
             B........
         ''' + EMPTY_ROW * 5)
-        self.assertEqual(go.is_likely_eye(board, pc('A7')), 'B')
-        self.assertEqual(go.is_likely_eye(board, pc('B8')), 'B')
+        self.assertEqual(go.is_likely_eye(board, pc('A7')), go.BLACK)
+        self.assertEqual(go.is_likely_eye(board, pc('B8')), go.BLACK)
         self.assertEqual(go.is_likely_eye(board, pc('C9')), None)
         self.assertEqual(go.is_likely_eye(board, pc('A9')), None)
 
@@ -123,7 +114,7 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=True,
         )
-        expected_board = go.load_board('''
+        expected_board = load_board('''
             .BB....WW
             B........
         ''' + EMPTY_ROW * 7)
@@ -138,10 +129,10 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.update('C9')
+        actual_position = start_position.play_move(pc('C9'))
         self.assertEqualPositions(actual_position, expected_position)
 
-        expected_board2 = go.load_board('''
+        expected_board2 = load_board('''
             .BB....WW
             B.......W
         ''' + EMPTY_ROW * 7)
@@ -153,11 +144,11 @@ class TestPosition(GoPositionTestCase):
             last2=pc('C9'),
             player1turn=True,
         )
-        actual_position2 = actual_position.update('J8')
+        actual_position2 = actual_position.play_move(pc('J8'))
         self.assertEqualPositions(actual_position2, expected_position2)
 
     def test_move_with_capture(self):
-        start_board = go.load_board(EMPTY_ROW * 5 + '''
+        start_board = load_board(EMPTY_ROW * 5 + '''
             BBBB.....
             BWWB.....
             W.WB.....
@@ -174,7 +165,7 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=True,
         )
-        expected_board = go.load_board(EMPTY_ROW * 5 + '''
+        expected_board = load_board(EMPTY_ROW * 5 + '''
             BBBB.....
             B..B.....
             .B.B.....
@@ -191,11 +182,11 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.update('B2')
+        actual_position = start_position.play_move(pc('B2'))
         self.assertEqualPositions(actual_position, expected_position)
 
     def test_ko_move(self):
-        start_board = go.load_board('''
+        start_board = load_board('''
             .WB......
             WB.......
         ''' + EMPTY_ROW * 7)
@@ -210,7 +201,7 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=True,
         )
-        expected_board = go.load_board('''
+        expected_board = load_board('''
             B.B......
             WB.......
         ''' + EMPTY_ROW * 7)
@@ -225,13 +216,13 @@ class TestPosition(GoPositionTestCase):
             last2=None,
             player1turn=False,
         )
-        actual_position = start_position.update('A9')
+        actual_position = start_position.play_move(pc('A9'))
 
         self.assertEqualPositions(actual_position, expected_position)
 
 class TestScoring(unittest.TestCase):
     def test_scoring(self):
-            board = go.load_board('''
+            board = load_board('''
                 .BB......
                 WWBB.....
                 WWWB...B.
@@ -256,7 +247,7 @@ class TestScoring(unittest.TestCase):
             expected_score = 1.5
             self.assertEqual(position.score(), expected_score)
 
-            board = go.load_board('''
+            board = load_board('''
                 BBB......
                 WWBB.....
                 WWWB...B.
