@@ -24,10 +24,10 @@ import go
 RAW_BOARD_EXTRACTOR_RE = re.compile(r'[^BW.]+')
 
 def make_onehot(feature, planes):
-    onehot_features = np.zeros(feature.shape + (planes,))
+    onehot_features = np.zeros(feature.shape + (planes,), dtype=np.float32)
     for i in range(planes - 1):
-        onehot_features[feature == i+1, i] = 1
-    onehot_features[feature >= planes, planes-1] = 1
+        onehot_features[:, :, i] = (feature == i+1)
+    onehot_features[:, :, planes-1] = (feature >= planes)
     return onehot_features
 
 class Feature(object):
