@@ -1,6 +1,7 @@
 import numpy as np
 import unittest
 import go
+from utils import parse_kgs_coords as pc, parse_sgf_coords
 from test_utils import GoPositionTestCase, load_board
 
 go.set_board_size(9)
@@ -11,7 +12,6 @@ TEST_BOARD = load_board('''
 B........
 ''' + EMPTY_ROW * 7)
 
-pc = go.parse_kgs_coords
 def pc_set(string):
     return set(map(pc, string.split()))
 
@@ -22,10 +22,10 @@ class TestGoBoard(GoPositionTestCase):
 
     def test_parsing(self):
         self.assertEqual(pc('A9'), (0, 0))
-        self.assertEqual(go.parse_sgf_coords('aa'), (0, 0))
+        self.assertEqual(parse_sgf_coords('aa'), (0, 0))
         self.assertEqual(pc('A3'), (6, 0))
-        self.assertEqual(go.parse_sgf_coords('ac'), (2, 0))
-        self.assertEqual(pc('D4'), go.parse_sgf_coords('df'))
+        self.assertEqual(parse_sgf_coords('ac'), (2, 0))
+        self.assertEqual(pc('D4'), parse_sgf_coords('df'))
 
     def test_neighbors(self):
         corner = pc('A1')

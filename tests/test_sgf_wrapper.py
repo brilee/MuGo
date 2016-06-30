@@ -1,9 +1,9 @@
 import go
 import sgf_wrapper
+from utils import parse_kgs_coords as pc
 from test_utils import GoPositionTestCase, load_board
 
 go.set_board_size(9)
-pc = go.parse_kgs_coords
 
 JAPANESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Japanese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]AB[gc][cg];W[ee];B[dg])"
 

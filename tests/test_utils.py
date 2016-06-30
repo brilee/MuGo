@@ -3,6 +3,9 @@ import re
 import unittest
 
 import go
+import utils
+
+go.set_board_size(9)
 
 def load_board(string):
     reverse_map = {
@@ -19,6 +22,32 @@ def load_board(string):
     for i, char in enumerate(string):
         np.ravel(board)[i] = reverse_map[char]
     return board
+
+class TestUtils(unittest.TestCase):
+    def test_parsing(self):
+        self.assertEqual(utils.parse_sgf_coords('aa'), (0, 0))
+        self.assertEqual(utils.parse_sgf_coords('ac'), (2, 0))
+        self.assertEqual(utils.parse_sgf_coords('ca'), (0, 2))
+        self.assertEqual(utils.parse_kgs_coords('A1'), (8, 0))
+        self.assertEqual(utils.parse_kgs_coords('A9'), (0, 0))
+        self.assertEqual(utils.parse_kgs_coords('C2'), (7, 2))
+        self.assertEqual(utils.parse_pygtp_coords((1, 1)), (8, 0))
+        self.assertEqual(utils.parse_pygtp_coords((1, 9)), (0, 0))
+        self.assertEqual(utils.parse_pygtp_coords((3, 2)), (7, 2))
+        self.assertEqual(utils.unparse_pygtp_coords((8, 0)), (1, 1))
+        self.assertEqual(utils.unparse_pygtp_coords((0, 0)), (1, 9))
+        self.assertEqual(utils.unparse_pygtp_coords((7, 2)), (3, 2))
+
+    def test_flatten(self):
+        self.assertEqual(utils.flatten_coords((0, 0)), 0)
+        self.assertEqual(utils.flatten_coords((0, 3)), 3)
+        self.assertEqual(utils.flatten_coords((3, 0)), 27)
+        self.assertEqual(utils.unflatten_coords(27), (3, 0))
+        self.assertEqual(utils.unflatten_coords(10), (1, 1))
+        self.assertEqual(utils.unflatten_coords(80), (8, 8))
+        self.assertEqual(utils.flatten_coords(utils.unflatten_coords(10)), 10)
+        self.assertEqual(utils.unflatten_coords(utils.flatten_coords((5, 4))), (5, 4))
+
 
 class GoPositionTestCase(unittest.TestCase):
     def assertEqualNPArray(self, array1, array2):

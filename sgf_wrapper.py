@@ -1,7 +1,8 @@
 from collections import namedtuple
 
 import go
-from go import Position, place_stone, deduce_groups, parse_sgf_coords as pc
+from go import Position, place_stone, deduce_groups
+from utils import parse_sgf_coords as pc
 import sgf
 
 def interpret_value(value):

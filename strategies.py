@@ -3,20 +3,7 @@ import random
 import gtp
 
 import go
-
-def parse_pygtp_coords(t):
-    'Interprets coords in the format (1, 1), with (1,1) being the bottom left'
-    if t == (0, 0):
-        return None
-    rows_from_top = go.N - t[1]
-    return go.W + go.W * rows_from_top + t[0] - 1
-
-def unparse_pygtp_coords(c):
-    if c is None:
-        return (0, 0)
-    c = c - go.W
-    row, column = divmod(c, go.W)
-    return column + 1, go.N - row
+import utils
 
 class GtpInterface(object):
     def __init__(self):
@@ -43,7 +30,7 @@ class GtpInterface(object):
             self.position = self.position._replace(player1turn=not self.position.player1turn)
 
     def make_move(self, color, vertex):
-        coords = parse_pygtp_coords(vertex)
+        coords = utils.parse_pygtp_coords(vertex)
         self.accomodate_out_of_turn(color)
         self.position = self.position.play_move(coords)
         return self.position is not None
@@ -51,7 +38,7 @@ class GtpInterface(object):
     def get_move(self, color):
         self.accomodate_out_of_turn(color)
         move = self.suggest_move(self.position)
-        return unparse_pygtp_coords(move)
+        return utils.unparse_pygtp_coords(move)
 
     def suggest_move(self, position):
         raise NotImplementedError

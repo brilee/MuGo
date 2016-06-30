@@ -4,11 +4,7 @@ import numpy as np
 
 import go
 import sgf_wrapper
-
-SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-def parse_sgf_to_flat(sgf):
-    return go.N * SGF_COLUMNS.index(sgf[0]) + SGF_COLUMNS.index(sgf[1])
+import utils
 
 def make_onehot(dense_labels, num_classes):
     dense_labels = np.fromiter(dense_labels, dtype=np.int16)
@@ -17,7 +13,6 @@ def make_onehot(dense_labels, num_classes):
     labels_one_hot = np.zeros((num_labels, num_classes))
     labels_one_hot.flat[index_offset + dense_labels.ravel()] = 1
     return labels_one_hot
-
 
 def load_sgf_positions(*dataset_names):
     for dataset in dataset_names:
@@ -79,7 +74,7 @@ def load_data_sets(features, *dataset_names):
     datasets = []
     for dataset in (test, validation, training):
         positions, next_moves, results = zip(*dataset)
-        encoded_moves = make_onehot(map(parse_sgf_to_flat, next_moves), go.N ** 2)
+        encoded_moves = make_onehot(map(utils.parse_sgf_to_flat, next_moves), go.N ** 2)
         extracted_features = extract_features(features, positions)
         datasets.append(DataSet(extracted_features, encoded_moves))
     return DataSets(*(datasets + [extracted_features.shape[-1]]))

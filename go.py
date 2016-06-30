@@ -2,6 +2,7 @@ from collections import namedtuple
 import itertools
 
 import numpy as np
+
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
 # AP and OP refer to "active player" and "other player".
 WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
@@ -17,8 +18,6 @@ ALL_COORDS = [] # initialized later on
 EMPTY_BOARD = None # initialized later on
 NEIGHBORS = {} # initialized later on
 DIAGONALS = {} # initialized later on
-COLUMNS = 'ABCDEFGHJKLMNOPQRST'
-SGF_COLUMNS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 def set_board_size(n):
     '''
@@ -35,21 +34,6 @@ def set_board_size(n):
 
     NEIGHBORS = {(x, y): list(filter(check_bounds, [(x+1, y), (x-1, y), (x, y+1), (x, y-1)])) for x, y in ALL_COORDS}
     DIAGONALS = {(x, y): list(filter(check_bounds, [(x+1, y+1), (x+1, y-1), (x-1, y+1), (x-1, y-1)])) for x, y in ALL_COORDS}
-
-def parse_sgf_coords(s):
-    'Interprets coords in the format "aj", with "aj" being top right quadrant'
-    if not s:
-        return None
-    return SGF_COLUMNS.index(s[1]), SGF_COLUMNS.index(s[0])
-
-def parse_kgs_coords(s):
-    'Interprets coords in the format "H3", with A1 being lower left quadrant.'
-    if s == 'pass':
-        return None
-    s = s.upper()
-    col = COLUMNS.index(s[0])
-    row_from_bottom = int(s[1:]) - 1
-    return N - row_from_bottom - 1, col
 
 def place_stone(board, color, c):
     new_board = np.copy(board)
@@ -209,9 +193,9 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             raw_board_contents.append(''.join(row))
         captures = self.caps
 
-        row_labels = '12345678901234567890'[:N]
+        row_labels = '1234567890123456789'[:N]
         annotated_board_contents = reversed([''.join(r) for r in zip(row_labels, reversed(raw_board_contents), row_labels)])
-        header_footer_rows = [' ' + COLUMNS[:N] + ' ']
+        header_footer_rows = [' ' + 'ABCDEFGHJKLMNOPQRST'[:N] + ' ']
         annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
         details = "\nMove: {}. Captures B: {} W: {}\n".format(self.n + 1, *captures)
         return annotated_board + details
