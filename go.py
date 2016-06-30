@@ -175,27 +175,28 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
 
     def __str__(self):
         pretty_print_map = {
-            WHITE: 'W',
+            WHITE: 'O',
             EMPTY: '.',
-            BLACK: 'B',
+            BLACK: 'X',
             FILL: '#',
             KO: '*',
         }
         if self.ko is not None:
-            board = place_stone(self.board, 3, self.ko)
+            board = place_stone(self.board, KO, self.ko)
         else:
             board = self.board
         raw_board_contents = []
         for i in range(N):
             row = []
             for j in range(N):
-                row.append(pretty_print_map[board[i,j]])
+                appended = '<' if (i, j) == self.last else ' '
+                row.append(pretty_print_map[board[i,j]] + appended)
             raw_board_contents.append(''.join(row))
         captures = self.caps
 
-        row_labels = '1234567890123456789'[:N]
-        annotated_board_contents = reversed([''.join(r) for r in zip(row_labels, reversed(raw_board_contents), row_labels)])
-        header_footer_rows = [' ' + 'ABCDEFGHJKLMNOPQRST'[:N] + ' ']
+        row_labels = ['%2d ' % i for i in range(N, 0, -1)]
+        annotated_board_contents = [''.join(r) for r in zip(row_labels, raw_board_contents, row_labels)]
+        header_footer_rows = ['   ' + ' '.join('ABCDEFGHJKLMNOPQRST'[:N]) + '   ']
         annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
         details = "\nMove: {}. Captures B: {} W: {}\n".format(self.n + 1, *captures)
         return annotated_board + details
