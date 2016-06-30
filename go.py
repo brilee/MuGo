@@ -61,18 +61,18 @@ def capture_stones(board, stones):
         board[s] = EMPTY
 
 def flood_fill(b, c):
-    'From a starting coordinate c, flood-fill the board with a temp marker'
+    'From a starting coordinate c, flood-fill (mutate) the board with FILL'
     color = b[c]
     entire_group = [c]
     frontier = [c]
     while frontier:
         current = frontier.pop()
-        b[current] = 2
+        b[current] = FILL
         for n in NEIGHBORS[current]:
             if b[n] == color:
                 frontier.append(n)
                 entire_group.append(n)
-    return b, set(entire_group)
+    return entire_group
 
 def find_neighbors(color, board, stones):
     'Find all neighbors of a set of stones of a given color'
@@ -135,9 +135,9 @@ def deduce_groups(board):
         while color in board:
             remaining_stones = np.where(board == color)
             c = remaining_stones[0][0], remaining_stones[1][0]
-            board, stones = flood_fill(board, c)
+            stones = flood_fill(board, c)
             liberties = find_liberties(board, stones)
-            groups.append(Group(stones=stones, liberties=liberties))
+            groups.append(Group(stones=set(stones), liberties=liberties))
         return groups
 
     return find_groups(board, 1), find_groups(board, -1)
@@ -215,14 +215,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
         details = "\nMove: {}. Captures B: {} W: {}\n".format(self.n + 1, *captures)
         return annotated_board + details
-
-    @property
-    def player1wins(self):
-        return False
-
-    @property
-    def player2wins(self):
-        return False
 
     def pass_move(self):
         return Position(
@@ -311,7 +303,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         while EMPTY in working_board:
             unassigned_spaces = np.where(working_board == EMPTY)
             c = unassigned_spaces[0][0], unassigned_spaces[1][0]
-            working_board, territory = flood_fill(working_board, c)
+            territory = flood_fill(working_board, c)
             borders = set(itertools.chain(*(NEIGHBORS[t] for t in territory)))
             border_colors = set(working_board[b] for b in borders)
             X_border = BLACK in border_colors

@@ -43,8 +43,9 @@ class TestGroupHandling(GoPositionTestCase):
             B........
         ''' + EMPTY_ROW * 7)
         test_board_copy = np.copy(TEST_BOARD)
-        actual_board, _ = go.flood_fill(test_board_copy, pc('H9'))
-        self.assertEqualNPArray(expected_board, actual_board)
+        stones = go.flood_fill(test_board_copy, pc('H9'))
+        self.assertEqualNPArray(expected_board, test_board_copy)
+        self.assertEqual([pc('H9'), pc('J9')], stones)
 
     def test_find_liberties(self):
         stones = pc_set('H9 J9')
