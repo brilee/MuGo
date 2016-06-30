@@ -140,7 +140,7 @@ def deduce_groups(board):
             groups.append(Group(stones=set(stones), liberties=liberties))
         return groups
 
-    return find_groups(board, 1), find_groups(board, -1)
+    return find_groups(board, BLACK), find_groups(board, WHITE)
 
 def update_groups(board, existing_AP_groups, existing_OP_groups, c):
     '''
@@ -191,11 +191,11 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
 
     def __str__(self):
         pretty_print_map = {
-            -1: 'W',
-            0: '.',
-            1: 'B',
-            2: '#',
-            3: '*',
+            WHITE: 'W',
+            EMPTY: '.',
+            BLACK: 'B',
+            FILL: '#',
+            KO: '*',
         }
         if self.ko is not None:
             board = place_stone(self.board, 3, self.ko)
@@ -241,7 +241,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         if self.board[c] != 0:
             return None
 
-        AP_color = 1 if self.player1turn else -1
+        AP_color = BLACK if self.player1turn else WHITE
         AP_groups, OP_groups = self.groups if self.player1turn else self.groups[::-1]
 
         working_board = place_stone(self.board, AP_color, c)
