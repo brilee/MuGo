@@ -2,6 +2,7 @@ from collections import namedtuple
 import os
 import numpy as np
 
+from features import DEFAULT_FEATURES
 import go
 import sgf_wrapper
 import utils
@@ -34,12 +35,11 @@ def partition_sets(stuff):
     training = stuff[2*cutoff:]
     return test, validation, training
 
-def extract_features(features, positions):
-    num_feature_planes = sum(f.planes for f in features)
+def bulk_extract(feature_extractor, positions):
     num_positions = len(positions)
-    output = np.zeros([num_positions, 19, 19, num_feature_planes])
+    output = np.zeros([num_positions, 19, 19, feature_extractor.planes])
     for i, pos in enumerate(positions):
-        output[i] = np.concatenate([feature.extract(pos) for feature in features], axis=2)
+        output[i] = feature_extractor.extract(pos)
     return output
 
 class DataSet(object):
@@ -68,13 +68,13 @@ class DataSet(object):
 
 DataSets = namedtuple("DataSets", "test validation training input_planes")
 
-def load_data_sets(features, *dataset_names):
+def load_data_sets(*dataset_names, feature_extractor=DEFAULT_FEATURES):
     positions_w_context = list(load_sgf_positions(*dataset_names))
     test, validation, training = partition_sets(positions_w_context)
     datasets = []
     for dataset in (test, validation, training):
         positions, next_moves, results = zip(*dataset)
         encoded_moves = make_onehot(map(utils.parse_sgf_to_flat, next_moves), go.N ** 2)
-        extracted_features = extract_features(features, positions)
+        extracted_features = bulk_extract(feature_extractor, positions)
         datasets.append(DataSet(extracted_features, encoded_moves))
     return DataSets(*(datasets + [extracted_features.shape[-1]]))

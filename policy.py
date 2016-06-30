@@ -22,11 +22,10 @@ linear layer with a single tanh unit.
 '''
 import tensorflow as tf
 
-import features
 import go
 from load_data_sets import load_data_sets
 
-kgs = load_data_sets([features.StoneColorFeature, features.LibertyFeature], "kgs-micro")
+kgs = load_data_sets("kgs-micro")
 
 class PolicyNetwork(object):
     def __init__(self, num_input_planes, k=64, num_int_conv_layers=3):

@@ -30,6 +30,14 @@ def make_onehot(feature, planes):
     onehot_features[:, :, planes-1] = (feature >= planes)
     return onehot_features
 
+class FeatureExtractor(object):
+    def __init__(self, features):
+        self.features = features
+        self.planes = sum(f.planes for f in features)
+
+    def extract(self, position):
+        return np.concatenate([feature.extract(position) for feature in self.features], axis=2)
+
 class Feature(object):
     planes = 1
     
@@ -64,3 +72,5 @@ class LibertyFeature(Feature):
             for s in g.stones:
                 features[s] = libs
         return make_onehot(features, LibertyFeature.planes)
+
+DEFAULT_FEATURES = FeatureExtractor([StoneColorFeature, LibertyFeature])
