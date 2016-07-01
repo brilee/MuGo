@@ -24,12 +24,9 @@ import tensorflow as tf
 
 import features
 import go
-from load_data_sets import load_data_sets
-
-kgs = load_data_sets("kgs-micro")
 
 class PolicyNetwork(object):
-    def __init__(self, num_input_planes, k=64, num_int_conv_layers=3):
+    def __init__(self, num_input_planes, k=32, num_int_conv_layers=3):
         self.num_input_planes = num_input_planes
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
@@ -78,7 +75,6 @@ class PolicyNetwork(object):
 
     def initialize_variables(self, save_file=None):
         self.session = tf.Session()
-        # put loading functionality here
         if save_file is None:
             self.session.run(tf.initialize_all_variables())
         else:
@@ -98,17 +94,9 @@ class PolicyNetwork(object):
 
     def run(self, position):
         processed_position = features.DEFAULT_FEATURES.extract(position)
-        return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})
+        return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
 
     def check_accuracy(self, test_data):
         test_accuracy = self.session.run(self.accuracy, feed_dict={self.x: test_data.input, self.y: test_data.labels})
         print("Test data accuracy: %g" % test_accuracy)
 
-n = PolicyNetwork(kgs.input_planes)
-n.initialize_variables("/tmp/mymodel")
-# for i in range(10):
-#     n.train(kgs.training)
-#     n.check_accuracy(kgs.test)
-n.check_accuracy(kgs.test)
-#n.save_variables("/tmp/mymodel")
-# best_moves = [unparse_kgs_coords(utils.unflatten_coords(c)) for c in sorted(range(361), key=lambda f: suggestion_probs[0, f])]

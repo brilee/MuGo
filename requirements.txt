@@ -1,3 +1,4 @@
+argh==0.26.2
 numpy==1.11.0
 protobuf==3.0.0b2
 pygtp==0.2

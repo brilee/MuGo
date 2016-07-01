@@ -4,6 +4,7 @@ import gtp
 
 import go
 import utils
+import policy, features
 
 class GtpInterface(object):
     def __init__(self):
@@ -46,3 +47,17 @@ class GtpInterface(object):
 class RandomPlayer(GtpInterface):
     def suggest_move(self, position):
         return random.choice(position.possible_moves())
+
+class PolicyNetworkBestMovePlayer(GtpInterface):
+    def __init__(self, network):
+        super().__init__()
+        self.network = network
+
+    def suggest_move(self, position):
+        probabilities = self.network.run(position)
+        move_probabilities = {
+            utils.unflatten_coords(x): probabilities[x]
+            for x in range(361)
+        }
+        best_move = max(move_probabilities.keys(), key=lambda k: move_probabilities[k])
+        return best_move

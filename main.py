@@ -1,11 +1,23 @@
 import argparse
+import argh
 import sys
-import gtp
+import gtp as gtp_lib
 
-from strategies import RandomPlayer
+from features import DEFAULT_FEATURES
+from strategies import RandomPlayer, PolicyNetworkBestMovePlayer
+from policy import PolicyNetwork
+from load_data_sets import load_data_sets
 
-def run_gtp(strategy):
-    gtp_engine = gtp.Engine(strategy())
+def gtp(strategy, read_file=None):
+    if strategy == 'random':
+        instance = RandomPlayer()
+    elif strategy == 'policy':
+        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes)
+        policy_network.initialize_variables(read_file)
+        instance = PolicyNetworkBestMovePlayer(policy_network)
+    else:
+        sys.stderr.write("Unknown strategy")
+    gtp_engine = gtp_lib.Engine(instance)
     sys.stderr.write("GTP engine ready\n")
     sys.stderr.flush()
     while not gtp_engine.disconnect:
@@ -21,13 +33,21 @@ def run_gtp(strategy):
             sys.stdout.write(engine_reply)
             sys.stdout.flush()
 
-strategies = {
-    'random': RandomPlayer,
-}
+def train(read_file=None, save_file=None, epochs=10, *data_sets):
+    processed_data = load_data_sets(*data_sets)
+    n = PolicyNetwork(processed_data.input_planes)
+    n.initialize_variables(read_file)
+    for i in range(epochs):
+        n.train(processed_data.training)
+        n.check_accuracy(processed_data.test)
+    if save_file is not None:
+        n.save_variables(save_file)
+        print("Finished training. New model saved to %s" % save_file, file=sys.stderr)
+
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument('strategy', choices=strategies.keys())
+argh.add_commands(parser, [gtp, train])
+
 if __name__ == '__main__':
-    args = parser.parse_args()
-    strategy = strategies[args.strategy]
-    run_gtp(strategy)
+    argh.dispatch(parser)

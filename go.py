@@ -303,4 +303,4 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
 
         return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
 
-set_board_size(9)
+set_board_size(19)

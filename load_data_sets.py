@@ -1,6 +1,7 @@
 from collections import namedtuple
 import os
 import numpy as np
+import sys
 
 from features import DEFAULT_FEATURES
 import go
@@ -15,10 +16,10 @@ def make_onehot(dense_labels, num_classes):
     labels_one_hot.flat[index_offset + dense_labels.ravel()] = 1
     return labels_one_hot
 
-def load_sgf_positions(*dataset_names):
-    for dataset in dataset_names:
-        dataset_dir = os.path.join(os.getcwd(), 'data', dataset)
-        dataset_files = [os.path.join(dataset_dir, name) for name in os.listdir(dataset_dir)]
+def load_sgf_positions(*dataset_dirs):
+    for dataset_dir in dataset_dirs:
+        full_dir = os.path.join(os.getcwd(), dataset_dir)
+        dataset_files = [os.path.join(full_dir, name) for name in os.listdir(full_dir)]
         all_datafiles = filter(os.path.isfile, dataset_files)
         for file in all_datafiles:
             with open(file) as f:
@@ -68,9 +69,12 @@ class DataSet(object):
 
 DataSets = namedtuple("DataSets", "test validation training input_planes")
 
-def load_data_sets(*dataset_names, feature_extractor=DEFAULT_FEATURES):
-    positions_w_context = list(load_sgf_positions(*dataset_names))
+def load_data_sets(*dataset_dirs, feature_extractor=DEFAULT_FEATURES):
+    print("Extracting positions from sgfs...", file=sys.stderr)
+    positions_w_context = list(load_sgf_positions(*dataset_dirs))
+    print("Partitioning %s positions into test, validation, training datasets" % len(positions_w_context))
     test, validation, training = partition_sets(positions_w_context)
+    print("Processing positions to extract features")
     datasets = []
     for dataset in (test, validation, training):
         positions, next_moves, results = zip(*dataset)

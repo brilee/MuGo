@@ -15,5 +15,13 @@ MuGo uses the GTP protocol, and you can use any gtp-compliant program with it.
 
 For example, to play against MuGo using gogui, you can do:
 ```
-gogui-twogtp -black 'python main.py random' -white 'gogui-display' -size 9 -komi 7.5 -verbose -auto
+gogui-twogtp -black 'python main.py gtp policy --read-file=/tmp/mymodel' -white 'gogui-display' -size 19 -komi 7.5 -verbose -auto
 ```
+
+Training
+========
+To train, run
+```
+python main.py train --read-file=/tmp/savedmodel --save-file=/tmp/savedmodel --epochs=10 data/kgs_data data/pro_data
+```
+where `data/kgs/data` and `data/pro_data` are directories of sgf files to be used for training. 
