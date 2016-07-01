@@ -22,6 +22,7 @@ linear layer with a single tanh unit.
 '''
 import tensorflow as tf
 
+import features
 import go
 from load_data_sets import load_data_sets
 
@@ -68,15 +69,23 @@ class PolicyNetwork(object):
         train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost)
         was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
+
+        saver = tf.train.Saver()
         # save everything to self.
         for name, thing in locals().items():
             if not name.startswith('_'):
                 setattr(self, name, thing)
 
-    def initialize_variables(self):
+    def initialize_variables(self, save_file=None):
         self.session = tf.Session()
         # put loading functionality here
-        self.session.run(tf.initialize_all_variables())
+        if save_file is None:
+            self.session.run(tf.initialize_all_variables())
+        else:
+            self.saver.restore(self.session, save_file)
+
+    def save_variables(self, save_file):
+        self.saver.save(self.session, save_file)
 
     def train(self, training_data, batch_size=16):
         num_minibatches = training_data.data_size // batch_size
@@ -87,15 +96,19 @@ class PolicyNetwork(object):
                 print("Step %d, training data accuracy: %g" % (i, train_accuracy))
             self.session.run(self.train_step, feed_dict={self.x: batch_x, self.y: batch_y})
 
-    def execute(self, input):
-        self.session.run(self.output, feed_dict={self.x: input})
+    def run(self, position):
+        processed_position = features.DEFAULT_FEATURES.extract(position)
+        return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})
 
     def check_accuracy(self, test_data):
         test_accuracy = self.session.run(self.accuracy, feed_dict={self.x: test_data.input, self.y: test_data.labels})
         print("Test data accuracy: %g" % test_accuracy)
 
 n = PolicyNetwork(kgs.input_planes)
-n.initialize_variables()
-for i in range(10):
-    n.train(kgs.training)
-    n.check_accuracy(kgs.test)
+n.initialize_variables("/tmp/mymodel")
+# for i in range(10):
+#     n.train(kgs.training)
+#     n.check_accuracy(kgs.test)
+n.check_accuracy(kgs.test)
+#n.save_variables("/tmp/mymodel")
+# best_moves = [unparse_kgs_coords(utils.unflatten_coords(c)) for c in sorted(range(361), key=lambda f: suggestion_probs[0, f])]
