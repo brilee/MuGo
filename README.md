@@ -22,6 +22,7 @@ Training
 ========
 To train, run
 ```
-python main.py train --read-file=/tmp/savedmodel --save-file=/tmp/savedmodel --epochs=10 data/kgs_data data/pro_data
+python main.py train --read-file=/tmp/savedmodel --save-file=/tmp/savedmodel --epochs=10 data/kgs_data data/pro_data --logdir=logs
 ```
-where `data/kgs/data` and `data/pro_data` are directories of sgf files to be used for training. 
+where `data/kgs/data` and `data/pro_data` are directories of sgf files to be used for training and `logs` is a directory for tensorboard use.
+You can then run `tensorboard --logdir=logs` to view test data accuracy over time, etc.

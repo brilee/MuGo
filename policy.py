@@ -20,6 +20,7 @@ kernel size 1 x 1 with stride 1, and hidden layer 14 is a fully connected
 linear layer with 256 rectifier units. The output layer is a fully connected
 linear layer with a single tanh unit.
 '''
+import itertools
 import tensorflow as tf
 
 import features
@@ -30,6 +31,8 @@ class PolicyNetwork(object):
         self.num_input_planes = num_input_planes
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
+        self.summary_writer = None
+        self.session = tf.Session()
         self.set_up_network()
 
     def set_up_network(self):
@@ -73,8 +76,15 @@ class PolicyNetwork(object):
             if not name.startswith('_'):
                 setattr(self, name, thing)
 
+    def initialize_logging(self, tensorboard_logdir):
+        for weight_var in itertools.chain([self.W_conv_init], self.W_conv_intermediate, [self.W_conv_final]):
+            tf.histogram_summary(weight_var.name, weight_var)
+        tf.scalar_summary("accuracy", self.accuracy)
+        tf.scalar_summary("log_likelihood_cost", self.log_likelihood_cost)
+        self.summaries = tf.merge_all_summaries()
+        self.summary_writer = tf.train.SummaryWriter(tensorboard_logdir, self.session.graph_def)
+
     def initialize_variables(self, save_file=None):
-        self.session = tf.Session()
         if save_file is None:
             self.session.run(tf.initialize_all_variables())
         else:
@@ -96,7 +106,9 @@ class PolicyNetwork(object):
         processed_position = features.DEFAULT_FEATURES.extract(position)
         return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
 
-    def check_accuracy(self, test_data):
-        test_accuracy = self.session.run(self.accuracy, feed_dict={self.x: test_data.input, self.y: test_data.labels})
+    def check_accuracy(self, epoch, test_data):
+        summary_str, test_accuracy = self.session.run([self.summaries, self.accuracy], feed_dict={self.x: test_data.input, self.y: test_data.labels})
+        if self.summary_writer is not None:
+            self.summary_writer.add_summary(summary_str, epoch)
         print("Test data accuracy: %g" % test_accuracy)
 
