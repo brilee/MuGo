@@ -41,7 +41,7 @@ def train(read_file=None, save_file=None, epochs=10, logdir=None, *data_sets):
         n.initialize_logging(logdir)
     for i in range(epochs):
         n.train(processed_data.training)
-        n.check_accuracy(i, processed_data.test)
+        n.check_accuracy(processed_data.test)
     if save_file is not None:
         n.save_variables(save_file)
         print("Finished training. New model saved to %s" % save_file, file=sys.stderr)

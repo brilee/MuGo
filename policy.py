@@ -36,6 +36,8 @@ class PolicyNetwork(object):
         self.set_up_network()
 
     def set_up_network(self):
+        # a global_step variable allows epoch counts to persist through multiple training sessions
+        global_step = tf.Variable(0, name="global_step", trainable=False)
         x = tf.placeholder(tf.float32, [None, go.N, go.N, self.num_input_planes])
         y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
 
@@ -66,7 +68,7 @@ class PolicyNetwork(object):
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
 
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost)
+        train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
         was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
@@ -106,9 +108,10 @@ class PolicyNetwork(object):
         processed_position = features.DEFAULT_FEATURES.extract(position)
         return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
 
-    def check_accuracy(self, epoch, test_data):
+    def check_accuracy(self, test_data):
         summary_str, test_accuracy = self.session.run([self.summaries, self.accuracy], feed_dict={self.x: test_data.input, self.y: test_data.labels})
+        global_step = self.session.run(self.global_step)
         if self.summary_writer is not None:
-            self.summary_writer.add_summary(summary_str, epoch)
-        print("Test data accuracy: %g" % test_accuracy)
+            self.summary_writer.add_summary(summary_str, global_step)
+        print("Epoch %s test data accuracy: %g" % (global_step, test_accuracy))
 
