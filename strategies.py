@@ -4,7 +4,6 @@ import gtp
 
 import go
 import utils
-import policy, features
 
 class GtpInterface(object):
     def __init__(self):
@@ -57,7 +56,7 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
         probabilities = self.network.run(position)
         move_probabilities = {
             utils.unflatten_coords(x): probabilities[x]
-            for x in range(361)
+            for x in range(go.N ** 2)
         }
         best_move = max(move_probabilities.keys(), key=lambda k: move_probabilities[k])
         return best_move

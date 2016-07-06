@@ -158,7 +158,7 @@ def update_groups(board, existing_AP_groups, existing_OP_groups, c):
 
 class Position(namedtuple('Position', 'board n komi caps groups ko last last2 player1turn')):
     '''
-    board: a string representation of the board
+    board: a numpy array
     n: an int representing moves played so far
     komi: a float, representing points given to the second player.
     caps: a (int, int) tuple of captures; caps[0] is the person to play.

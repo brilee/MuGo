@@ -87,7 +87,7 @@ class PolicyNetwork(object):
         num_minibatches = training_data.data_size // batch_size
         for i in range(num_minibatches):
             batch_x, batch_y = training_data.get_batch(batch_size)
-            if i % 10 == 0:
+            if i % 100 == 0:
                 train_accuracy = self.session.run(self.accuracy, feed_dict={self.x: batch_x, self.y: batch_y})
                 print("Step %d, training data accuracy: %g" % (i, train_accuracy))
             self.session.run(self.train_step, feed_dict={self.x: batch_x, self.y: batch_y})
