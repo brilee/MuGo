@@ -32,7 +32,8 @@ class PolicyNetwork(object):
         self.num_input_planes = num_input_planes
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
-        self.summary_writer = None
+        self.test_summary_writer = None
+        self.training_summary_writer = None
         self.session = tf.Session()
         self.set_up_network()
 
@@ -74,21 +75,23 @@ class PolicyNetwork(object):
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
         saver = tf.train.Saver()
+
+        weight_summaries = tf.merge_summary([
+            tf.histogram_summary(weight_var.name, weight_var)
+            for weight_var in itertools.chain(
+                [W_conv_init],
+                W_conv_intermediate,
+                [W_conv_final])])
+        _accuracy = tf.scalar_summary("accuracy", accuracy)
+        _cost = tf.scalar_summary("log_likelihood_cost", log_likelihood_cost)
+        accuracy_summaries = tf.merge_summary([_accuracy, _cost])
+
         # save everything to self.
         for name, thing in locals().items():
             if not name.startswith('_'):
                 setattr(self, name, thing)
 
     def initialize_logging(self, tensorboard_logdir):
-        weight_summaries = [tf.histogram_summary(weight_var.name, weight_var)
-            for weight_var in itertools.chain(
-                [self.W_conv_init],
-                self.W_conv_intermediate,
-                [self.W_conv_final])]
-        accuracy = tf.scalar_summary("accuracy", self.accuracy)
-        cost = tf.scalar_summary("log_likelihood_cost", self.log_likelihood_cost)
-        self.weight_summaries = tf.merge_summary(weight_summaries)
-        self.accuracy_summaries = tf.merge_summary([accuracy, cost])
         self.test_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
         self.training_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
 
