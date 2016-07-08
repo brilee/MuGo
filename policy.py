@@ -126,7 +126,7 @@ class PolicyNetwork(object):
         weight_summaries = self.session.run(self.weight_summaries)
         accuracy_summaries, test_accuracy = self.session.run(
             [self.accuracy_summaries, self.accuracy],
-            feed_dict={self.x: test_data.input, self.y: test_data.labels})
+            feed_dict={self.x: test_data.pos_features, self.y: test_data.next_moves})
         global_step = self.session.run(self.global_step)
         if self.test_summary_writer is not None:
             self.test_summary_writer.add_summary(weight_summaries, global_step)

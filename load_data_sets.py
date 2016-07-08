@@ -44,12 +44,13 @@ def bulk_extract(feature_extractor, positions):
     return output
 
 class DataSet(object):
-    def __init__(self, input, labels):
-        self.input = input
-        self.labels = labels
-        assert input.shape[0] == labels.shape[0], "Didn't pass in same number of inputs and labels."
-        self.data_size = input.shape[0]
-        self._epochs_completed = 0
+    def __init__(self, pos_features, next_moves, results, is_test=False):
+        self.pos_features = pos_features
+        self.next_moves = next_moves
+        self.results = results
+        assert pos_features.shape[0] == next_moves.shape[0], "Didn't pass in same number of pos_features and next_moves."
+        self.data_size = pos_features.shape[0]
+        self.input_planes = pos_features.shape[-1]
         self._index_within_epoch = 0
 
     def get_batch(self, batch_size):
@@ -58,14 +59,13 @@ class DataSet(object):
             # Shuffle the data and start over
             perm = np.arange(self.data_size)
             np.random.shuffle(perm)
-            self.input = self.input[perm]
-            self.labels = self.labels[perm]
+            self.pos_features = self.pos_features[perm]
+            self.next_moves = self.next_moves[perm]
             self._index_within_epoch = 0
-            self._epochs_completed += 1
         start = self._index_within_epoch
         end = start + batch_size
         self._index_within_epoch += batch_size
-        return self.input[start:end], self.labels[start:end]
+        return self.pos_features[start:end], self.next_moves[start:end]
 
 DataSets = namedtuple("DataSets", "test validation training input_planes")
 
@@ -80,5 +80,5 @@ def load_data_sets(*dataset_dirs, feature_extractor=DEFAULT_FEATURES):
         positions, next_moves, results = zip(*dataset)
         encoded_moves = make_onehot(map(utils.parse_sgf_to_flat, next_moves), go.N ** 2)
         extracted_features = bulk_extract(feature_extractor, positions)
-        datasets.append(DataSet(extracted_features, encoded_moves))
+        datasets.append(DataSet(extracted_features, encoded_moves, results))
     return DataSets(*(datasets + [extracted_features.shape[-1]]))
