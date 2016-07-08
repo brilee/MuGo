@@ -34,14 +34,16 @@ def gtp(strategy, read_file=None):
             sys.stdout.flush()
 
 def train(read_file=None, save_file=None, epochs=10, logdir=None, *data_sets):
-    processed_data = load_data_sets(*data_sets)
-    n = PolicyNetwork(processed_data.input_planes)
+    test_dataset, training_datasets = load_data_sets(*data_sets)
+    training_datasets = list(training_datasets)
+    n = PolicyNetwork(DEFAULT_FEATURES.planes)
     n.initialize_variables(read_file)
     if logdir is not None:
         n.initialize_logging(logdir)
     for i in range(epochs):
-        n.train(processed_data.training)
-        n.check_accuracy(processed_data.test)
+        for dset in training_datasets:
+            n.train(dset)
+        n.check_accuracy(test_dataset)
     if save_file is not None:
         n.save_variables(save_file)
         print("Finished training. New model saved to %s" % save_file, file=sys.stderr)

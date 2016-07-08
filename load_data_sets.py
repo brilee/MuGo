@@ -8,6 +8,23 @@ import go
 import sgf_wrapper
 import utils
 
+# Number of data points to store in a chunk on disk
+DEFAULT_CHUNK_SIZE = 4096
+
+def iter_chunks(chunk_size, iterable):
+    iterator = iter(iterable)
+    while True:
+        current_chunk = []
+        try:
+            for i in range(chunk_size):
+                current_chunk.append(next(iterator))
+            yield current_chunk
+        except StopIteration:
+            # return the final partial chunk. 
+            # If len(iterable) % chunk_size == 0, don't return an empty chunk.
+            if current_chunk: yield current_chunk
+            break
+
 def make_onehot(dense_labels, num_classes):
     dense_labels = np.fromiter(dense_labels, dtype=np.int16)
     num_labels = dense_labels.shape[0]
@@ -67,18 +84,27 @@ class DataSet(object):
         self._index_within_epoch += batch_size
         return self.pos_features[start:end], self.next_moves[start:end]
 
-DataSets = namedtuple("DataSets", "test validation training input_planes")
-
-def load_data_sets(*dataset_dirs, feature_extractor=DEFAULT_FEATURES):
-    print("Extracting positions from sgfs...", file=sys.stderr)
-    positions_w_context = list(load_sgf_positions(*dataset_dirs))
-    print("Partitioning %s positions into test, validation, training datasets" % len(positions_w_context))
-    test, validation, training = partition_sets(positions_w_context)
-    print("Processing positions to extract features")
-    datasets = []
-    for dataset in (test, validation, training):
-        positions, next_moves, results = zip(*dataset)
+    @staticmethod
+    def from_positions_w_context(positions_w_context, is_test=False):
+        positions, next_moves, results = zip(*positions_w_context)
+        extracted_features = bulk_extract(DEFAULT_FEATURES, positions)
         encoded_moves = make_onehot(map(utils.parse_sgf_to_flat, next_moves), go.N ** 2)
-        extracted_features = bulk_extract(feature_extractor, positions)
-        datasets.append(DataSet(extracted_features, encoded_moves, results))
-    return DataSets(*(datasets + [extracted_features.shape[-1]]))
+        return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
+
+def load_data_sets(*dataset_dirs, chunk_size=DEFAULT_CHUNK_SIZE):
+    print("Extracting positions from sgfs...", file=sys.stderr)
+    positions_w_context = load_sgf_positions(*dataset_dirs)
+    print("Partitioning positions into test, training datasets")
+    data_chunks = iter_chunks(chunk_size, positions_w_context)
+    first_chunk = next(data_chunks)
+    if len(first_chunk) != chunk_size:
+        test_size = len(first_chunk) // 2
+        test_chunk, training_chunks = first_chunk[:test_size], [first_chunk[test_size:]]
+        print("Allocating %s positions as test; %s positions as training" % (test_size, len(first_chunk) - test_size), file=sys.stderr)
+    else:
+        test_chunk, training_chunks = first_chunk, data_chunks
+        print("Allocating %s positions as test; remainder as training" % chunk_size, file=sys.stderr)
+    print("Processing positions to extract features")
+    test_dataset = DataSet.from_positions_w_context(test_chunk, is_test=True)
+    training_datasets = map(DataSet.from_positions_w_context, training_chunks)
+    return test_dataset, training_datasets
