@@ -2,7 +2,7 @@ import unittest
 
 import features
 import go
-from test_utils import load_board
+from test_utils import load_board, GoPositionTestCase
 
 go.set_board_size(9)
 EMPTY_ROW = '.' * go.N + '\n'
@@ -25,7 +25,7 @@ TEST_POSITION = go.Position(
 )
 
 
-class TestFeatureExtraction(unittest.TestCase):
+class TestFeatureExtraction(GoPositionTestCase):
     def test_stone_color_feature(self):
         f = features.StoneColorFeature.extract(TEST_POSITION)
         self.assertEqual(f.shape, (9, 9, 3))

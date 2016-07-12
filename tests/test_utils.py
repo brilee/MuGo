@@ -50,6 +50,9 @@ class TestUtils(unittest.TestCase):
 
 
 class GoPositionTestCase(unittest.TestCase):
+    def setUp(self):
+        go.set_board_size(9)
+
     def assertEqualNPArray(self, array1, array2):
         if not np.all(array1 == array2):
             raise AssertionError("Arrays differed in one or more locations:\n%s\n%s" % (array1, array2))

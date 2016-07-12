@@ -1,12 +1,16 @@
 import argparse
 import argh
+import os
+import re
 import sys
 import gtp as gtp_lib
 
 from features import DEFAULT_FEATURES
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer
 from policy import PolicyNetwork
-from load_data_sets import load_data_sets
+from load_data_sets import process_raw_data, DataSet
+
+TRAINING_CHUNK_RE = re.compile("train\d+.chunk")
 
 def gtp(strategy, read_file=None):
     if strategy == 'random':
@@ -33,16 +37,33 @@ def gtp(strategy, read_file=None):
             sys.stdout.write(engine_reply)
             sys.stdout.flush()
 
-def train(read_file=None, save_file=None, epochs=10, logdir=None, *data_sets):
-    test_dataset, training_datasets = load_data_sets(*data_sets)
-    training_datasets = list(training_datasets)
+def preprocess(*data_sets, processed_dir="processed_data"):
+    processed_dir = os.path.join(os.getcwd(), processed_dir)
+    if not os.path.isdir(processed_dir):
+        os.mkdir(processed_dir)
+
+    test_dataset, training_datasets = process_raw_data(*data_sets)
+
+    test_filename = os.path.join(processed_dir, "test.chunk")
+    test_dataset.write(test_filename)
+
+    for i, train_dataset in enumerate(training_datasets):
+        train_filename = os.path.join(processed_dir, "train%s.chunk" % i)
+        train_dataset.write(train_filename)
+
+def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None):
+    test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk"))
+    train_chunk_files = [os.path.join(processed_dir, fname) 
+        for fname in os.listdir(processed_dir)
+        if TRAINING_CHUNK_RE.match(fname)]
     n = PolicyNetwork(DEFAULT_FEATURES.planes)
     n.initialize_variables(read_file)
     if logdir is not None:
         n.initialize_logging(logdir)
     for i in range(epochs):
-        for dset in training_datasets:
-            n.train(dset)
+        for file in train_chunk_files:
+            train_dataset = DataSet.read(file)
+            n.train(train_dataset)
         n.check_accuracy(test_dataset)
     if save_file is not None:
         n.save_variables(save_file)
@@ -51,7 +72,7 @@ def train(read_file=None, save_file=None, epochs=10, logdir=None, *data_sets):
 
 
 parser = argparse.ArgumentParser()
-argh.add_commands(parser, [gtp, train])
+argh.add_commands(parser, [gtp, preprocess, train])
 
 if __name__ == '__main__':
     argh.dispatch(parser)
