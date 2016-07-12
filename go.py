@@ -43,16 +43,16 @@ def capture_stones(board, stones):
     for s in stones:
         board[s] = EMPTY
 
-def flood_fill(b, c):
+def flood_fill(board, c):
     'From a starting coordinate c, flood-fill (mutate) the board with FILL'
-    color = b[c]
+    color = board[c]
     entire_group = [c]
     frontier = [c]
     while frontier:
         current = frontier.pop()
-        b[current] = FILL
+        board[current] = FILL
         for n in NEIGHBORS[current]:
-            if b[n] == color:
+            if board[n] == color:
                 frontier.append(n)
                 entire_group.append(n)
     return entire_group
@@ -76,31 +76,6 @@ def is_eyeish(board, c):
         return list(possessed_by)[0]
     else:
         return None
-
-def is_likely_eye(board, c):
-    '''
-    Check if a coordinate c is a likely eye, and return its color if so.
-    Does not guarantee that it's an eye. It only guarantees that a player
-    wouldn't ever want to play there. For example: both are likely eyes
-    BB.B.
-    .BB..
-    B....
-    .....
-    '''
-    color = is_eyeish(board, c)
-    if color is None: return None
-    opposite_color = -1 * color
-
-    diagonal_faults = 0
-    diagonal_owners = [board[d] for d in DIAGONALS[c]]
-    if len(diagonal_owners) < 4:
-        diagonal_faults += 1
-    diagonal_faults += len([d for d in diagonal_owners if d == opposite_color])
-
-    if diagonal_faults > 1:
-        return None
-    else:
-        return color
 
 class Group(namedtuple('Group', 'stones liberties')):
     '''
@@ -170,7 +145,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=([], []), ko=None, last=None, last2=None, player1turn=True)
 
     def possible_moves(self):
-        return [c for c in ALL_COORDS if self.board[c] == EMPTY and not is_likely_eye(self.board, c)]
+        return [c for c in ALL_COORDS if self.board[c] == EMPTY]
 
     def __str__(self):
         pretty_print_map = {

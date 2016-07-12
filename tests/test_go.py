@@ -90,18 +90,6 @@ class TestEyeHandling(unittest.TestCase):
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_eyeish(TEST_BOARD, pc('E5')), None)
 
-    def test_likely_eye(self):
-        board = load_board('''
-            BB.B.....
-            B.BW.....
-            .BWW.....
-            B........
-        ''' + EMPTY_ROW * 5)
-        self.assertEqual(go.is_likely_eye(board, pc('A7')), go.BLACK)
-        self.assertEqual(go.is_likely_eye(board, pc('B8')), go.BLACK)
-        self.assertEqual(go.is_likely_eye(board, pc('C9')), None)
-        self.assertEqual(go.is_likely_eye(board, pc('A9')), None)
-
 class TestPosition(GoPositionTestCase):
     def test_move(self):
         start_position = go.Position(
