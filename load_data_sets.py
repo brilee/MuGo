@@ -1,4 +1,3 @@
-from collections import namedtuple
 import os
 import numpy as np
 import struct

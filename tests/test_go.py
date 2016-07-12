@@ -221,6 +221,24 @@ class TestPosition(GoPositionTestCase):
 
         self.assertEqualPositions(actual_position, expected_position)
 
+        # Check that retaking ko is illegal until two intervening moves
+        ko_immediate_retake = actual_position.play_move(pc('B9'))
+        self.assertEqual(ko_immediate_retake, None)
+        pass_twice = actual_position.pass_move().pass_move()
+        ko_delayed_retake = pass_twice.play_move(pc('B9'))
+        expected_position = go.Position(
+            board=start_board,
+            n=4,
+            komi=6.5,
+            caps=(2, 3),
+            groups=go.deduce_groups(start_board),
+            ko=pc('A9'),
+            last=pc('B9'),
+            last2=None,
+            player1turn=True,
+        )
+        self.assertEqualPositions(ko_delayed_retake, expected_position)
+
 class TestScoring(unittest.TestCase):
     def test_scoring(self):
             board = load_board('''

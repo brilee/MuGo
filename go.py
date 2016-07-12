@@ -6,7 +6,6 @@ import numpy as np
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
 # AP and OP refer to "active player" and "other player".
 WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
-# Other special values:
 
 # A Coordinate is a tuple index into the board. 
 # A Move is a (Coordinate c | None).
@@ -227,6 +226,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             return None
 
         AP_color = BLACK if self.player1turn else WHITE
+        OP_color = AP_color * -1
         AP_groups, OP_groups = self.groups if self.player1turn else self.groups[::-1]
 
         working_board = place_stone(self.board, AP_color, c)
@@ -258,7 +258,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                     # suicides are illegal!
                     return None
 
-        if len(OP_captures) == 1 and is_eyeish(self.board, c) == WHITE:
+        if len(OP_captures) == 1 and is_eyeish(self.board, c) == OP_color:
             ko = list(OP_captures)[0]
         else:
             ko = None
