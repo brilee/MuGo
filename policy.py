@@ -52,7 +52,7 @@ class PolicyNetwork(object):
 
         # initial conv layer is 5x5
         W_conv_init = weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init")
-        h_conv_init = tf.nn.relu(conv2d(x, W_conv_init))
+        h_conv_init = tf.nn.relu(conv2d(x, W_conv_init), name="h_conv_init")
 
         # followed by a series of 3x3 conv layers
         W_conv_intermediate = []
@@ -60,7 +60,7 @@ class PolicyNetwork(object):
         _current_h_conv = h_conv_init
         for i in range(self.num_int_conv_layers):
             W_conv_intermediate.append(weight_variable([3, 3, self.k, self.k], name="W_conv_inter" + str(i)))
-            h_conv_intermediate.append(tf.nn.relu(conv2d(_current_h_conv, W_conv_intermediate[-1])))
+            h_conv_intermediate.append(tf.nn.relu(conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv_inter" + str(i)))
             _current_h_conv = h_conv_intermediate[-1]
 
         W_conv_final = weight_variable([1, 1, self.k, 1], name="W_conv_final")
@@ -70,7 +70,7 @@ class PolicyNetwork(object):
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
 
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
+        train_step = tf.train.GradientDescentOptimizer(3e-3).minimize(log_likelihood_cost, global_step=global_step)
         was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
@@ -82,6 +82,8 @@ class PolicyNetwork(object):
                 [W_conv_init],
                 W_conv_intermediate,
                 [W_conv_final])])
+        activation_summaries = tf.merge_summary([tf.histogram_summary(act_var.name, act_var)
+            for act_var in itertools.chain([h_conv_init], h_conv_intermediate)])
         _accuracy = tf.scalar_summary("accuracy", accuracy)
         _cost = tf.scalar_summary("log_likelihood_cost", log_likelihood_cost)
         accuracy_summaries = tf.merge_summary([_accuracy, _cost])
@@ -110,11 +112,12 @@ class PolicyNetwork(object):
             batch_x, batch_y = training_data.get_batch(batch_size)
             global_step = self.session.run(self.global_step)
             if global_step % 100 == 0:
-                summary_str, train_accuracy = self.session.run(
-                    [self.accuracy_summaries, self.accuracy],
+                accuracy_summaries, activation_summaries, train_accuracy = self.session.run(
+                    [self.accuracy_summaries, self.activation_summaries, self.accuracy],
                     feed_dict={self.x: batch_x, self.y: batch_y})
                 if self.training_summary_writer is not None:
-                    self.training_summary_writer.add_summary(summary_str, global_step)
+                    self.training_summary_writer.add_summary(accuracy_summaries, global_step)
+                    self.training_summary_writer.add_summary(activation_summaries, global_step)
                 print("Step %d, training data accuracy: %g" % (global_step, train_accuracy))
             self.session.run(self.train_step, feed_dict={self.x: batch_x, self.y: batch_y})
 
