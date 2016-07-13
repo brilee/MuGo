@@ -1,22 +1,30 @@
+'''
+Conventions used: "B" to play, always. "W" is the opponent.
+Traditional Black and White players are instead referred to as X and O,
+or equivalently, "player 1" and "player 2".
+All positions are stored in B to play notation, for easier feeding into
+neural networks.
+
+A Coordinate is a tuple index into the board.
+A Move is a (Coordinate c | None).
+
+When representing the numpy array as a board, (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
+
+'''
 from collections import namedtuple
 import itertools
 
 import numpy as np
 
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
-# AP and OP refer to "active player" and "other player".
 WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
 
-# A Coordinate is a tuple index into the board. 
-# A Move is a (Coordinate c | None).
-
-# When representing the numpy array as a board, (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
-
+# these are initialized by set_board_size
 N = None
-ALL_COORDS = [] # initialized later on
-EMPTY_BOARD = None # initialized later on
-NEIGHBORS = {} # initialized later on
-DIAGONALS = {} # initialized later on
+ALL_COORDS = []
+EMPTY_BOARD = None
+NEIGHBORS = {}
+DIAGONALS = {}
 
 def set_board_size(n):
     '''
@@ -46,7 +54,7 @@ def capture_stones(board, stones):
 def flood_fill(board, c):
     'From a starting coordinate c, flood-fill (mutate) the board with FILL'
     color = board[c]
-    entire_group = [c]
+    entire_group = set([c])
     frontier = [c]
     while frontier:
         current = frontier.pop()
@@ -54,7 +62,7 @@ def flood_fill(board, c):
         for n in NEIGHBORS[current]:
             if board[n] == color:
                 frontier.append(n)
-                entire_group.append(n)
+                entire_group.add(n)
     return entire_group
 
 def find_neighbors(color, board, stones):
@@ -67,8 +75,8 @@ def find_liberties(board, stones):
     'Given a board and a set of stones, find liberties of those stones'
     return find_neighbors(EMPTY, board, stones)
 
-def is_eyeish(board, c):
-    'Check if c is a false/likely true eye, and return its color if so'
+def is_koish(board, c):
+    'Check if c is surrounded on all sides by 1 color, and return that color'
     if board[c] != EMPTY: return None
     surrounding_colors = {board[n] for n in NEIGHBORS[c]}
     possessed_by = surrounding_colors.intersection({BLACK, WHITE, EMPTY})
@@ -104,7 +112,8 @@ def update_groups(board, existing_AP_groups, existing_OP_groups, c):
     '''
     When a move is played, update the list of groups and their liberties.
     This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
-    The board should represent the state after the move has been played at `c`.
+    The returned groups represent the state after the move has been played,
+    but before captures are processed.
     '''
     updated_AP_groups, groups_to_merge = [], []
     for g in existing_AP_groups:

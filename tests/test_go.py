@@ -96,7 +96,7 @@ class TestPosition(GoPositionTestCase):
             board=TEST_BOARD,
             n=0,
             komi=6.5,
-            caps=(1,2),
+            caps=(1, 2),
             groups=go.deduce_groups(TEST_BOARD),
             ko=None,
             last=None,

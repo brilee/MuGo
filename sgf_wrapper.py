@@ -1,3 +1,15 @@
+'''
+Code to extract a series of positions + their next moves from an SGF.
+
+Most of the complexity here is dealing with two features of SGF:
+- Stones can be added via "play move" or "add move", the latter being used
+  to configure L+D puzzles, but also for initial handicap placement.
+- Plays don't necessarily alternate colors; they can be repeated B or W moves
+  This feature is used to handle free handicap placement.
+
+Since our Go position data structure flips all colors based on whose turn it is
+we have to look ahead at next move to correctly create a position.
+'''
 from collections import namedtuple
 
 import go
@@ -5,26 +17,14 @@ from go import Position, place_stone, deduce_groups
 from utils import parse_sgf_coords as pc
 import sgf
 
-def interpret_value(value):
-    'Attempt to interpret value as an integer, a float, or a string.'
-    try:
-        f = float(value)
-        i = int(f)
-        if f == i:
-            return i
-        else:
-            return f
-    except ValueError:
-        return value
-
 def sgf_prop(value_list):
     'Converts raw sgf library output to sensible value'
     if value_list is None:
         return None
     if len(value_list) == 1:
-        return interpret_value(value_list[0])
+        return value_list[0]
     else:
-        return map(interpret_value, value_list)
+        return value_list
 
 # SGFs have a notion of "add stones" and "play stones".
 # Add stones can have arbitrary numbers of either color stone, and is used
@@ -81,10 +81,10 @@ class SgfWrapper(object):
         self.collection = sgf.parse(file_contents)
         self.game = self.collection.children[0]
         props = self.game.root.properties
-        assert sgf_prop(props.get('GM', [1])) == 1, "Not a Go SGF!"
+        assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
         self.result = sgf_prop(props.get('RE'))
-        self.komi = sgf_prop(props.get('KM'))
-        self.board_size = sgf_prop(props.get('SZ'))
+        self.komi = float(sgf_prop(props.get('KM')))
+        self.board_size = int(sgf_prop(props.get('SZ')))
         go.set_board_size(self.board_size)
 
     def get_main_branch(self):
