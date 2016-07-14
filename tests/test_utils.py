@@ -7,16 +7,21 @@ import utils
 
 go.set_board_size(9)
 
-def load_board(string):
+def load_board(string, player1turn):
     reverse_map = {
-        'W': go.WHITE,
         '.': go.EMPTY,
-        'B': go.BLACK,
         '#': go.FILL,
         '*': go.KO,
         '?': go.UNKNOWN
     }
-    string = re.sub(r'[^BW\.#]+', '', string)
+    if player1turn:
+        reverse_map['X'] = go.BLACK
+        reverse_map['O'] = go.WHITE
+    else:
+        reverse_map['O'] = go.BLACK
+        reverse_map['X'] = go.WHITE
+
+    string = re.sub(r'[^XO\.#]+', '', string)
     assert len(string) == go.N ** 2, "Board to load didn't have right dimensions"
     board = np.zeros([go.N, go.N], dtype=np.int8)
     for i, char in enumerate(string):

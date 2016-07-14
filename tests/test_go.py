@@ -8,9 +8,9 @@ go.set_board_size(9)
 
 EMPTY_ROW = '.' * go.N + '\n'
 TEST_BOARD = load_board('''
-.B.....WW
-B........
-''' + EMPTY_ROW * 7)
+.X.....OO
+X........
+''' + EMPTY_ROW * 7, player1turn=True)
 
 def pc_set(string):
     return set(map(pc, string.split()))
@@ -18,7 +18,7 @@ def pc_set(string):
 class TestGoBoard(GoPositionTestCase):
     def test_load_board(self):
         self.assertEqualNPArray(go.EMPTY_BOARD, np.zeros([go.N, go.N]))
-        self.assertEqualNPArray(go.EMPTY_BOARD, load_board('. \n' * go.N ** 2))
+        self.assertEqualNPArray(go.EMPTY_BOARD, load_board('. \n' * go.N ** 2, player1turn=True))
 
     def test_parsing(self):
         self.assertEqual(pc('A9'), (0, 0))
@@ -39,13 +39,13 @@ class TestGoBoard(GoPositionTestCase):
 class TestGroupHandling(GoPositionTestCase):
     def test_flood_fill(self):
         expected_board = load_board('''
-            .B.....##
-            B........
-        ''' + EMPTY_ROW * 7)
+            .X.....##
+            X........
+        ''' + EMPTY_ROW * 7, player1turn=True)
         test_board_copy = np.copy(TEST_BOARD)
         stones = go.flood_fill(test_board_copy, pc('H9'))
         self.assertEqualNPArray(expected_board, test_board_copy)
-        self.assertEqual([pc('H9'), pc('J9')], stones)
+        self.assertEqual(pc_set('H9 J9'), stones)
 
     def test_find_liberties(self):
         stones = pc_set('H9 J9')
@@ -83,12 +83,12 @@ class TestGroupHandling(GoPositionTestCase):
         )])
         self.assertEqual(existing_O_groups, updated_O_groups)
 
-class TestEyeHandling(unittest.TestCase):
+class TestEyeHandling(GoPositionTestCase):
     def test_eyeish(self):
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('A9')), go.BLACK)
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B8')), None)
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('B9')), None)
-        self.assertEqual(go.is_eyeish(TEST_BOARD, pc('E5')), None)
+        self.assertEqual(go.is_koish(TEST_BOARD, pc('A9')), go.BLACK)
+        self.assertEqual(go.is_koish(TEST_BOARD, pc('B8')), None)
+        self.assertEqual(go.is_koish(TEST_BOARD, pc('B9')), None)
+        self.assertEqual(go.is_koish(TEST_BOARD, pc('E5')), None)
 
 class TestPosition(GoPositionTestCase):
     def test_move(self):
@@ -104,14 +104,14 @@ class TestPosition(GoPositionTestCase):
             player1turn=True,
         )
         expected_board = load_board('''
-            .BB....WW
-            B........
-        ''' + EMPTY_ROW * 7)
+            .XX....OO
+            X........
+        ''' + EMPTY_ROW * 7, player1turn=False)
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=6.5,
-            caps=(1,2),
+            komi=-6.5,
+            caps=(2, 1),
             groups=go.deduce_groups(expected_board),
             ko=None,
             last=pc('C9'),
@@ -122,13 +122,16 @@ class TestPosition(GoPositionTestCase):
         self.assertEqualPositions(actual_position, expected_position)
 
         expected_board2 = load_board('''
-            .BB....WW
-            B.......W
-        ''' + EMPTY_ROW * 7)
-        expected_position2 = expected_position._replace(
+            .XX....OO
+            X.......O
+        ''' + EMPTY_ROW * 7, player1turn=True)
+        expected_position2 = go.Position(
             board=expected_board2,
             n=2,
+            komi=6.5,
+            caps=(1, 2),
             groups=go.deduce_groups(expected_board2),
+            ko=None,
             last=pc('J8'),
             last2=pc('C9'),
             player1turn=True,
@@ -138,11 +141,11 @@ class TestPosition(GoPositionTestCase):
 
     def test_move_with_capture(self):
         start_board = load_board(EMPTY_ROW * 5 + '''
-            BBBB.....
-            BWWB.....
-            W.WB.....
-            WWBB.....
-        ''')
+            XXXX.....
+            XOOX.....
+            O.OX.....
+            OOXX.....
+        ''', player1turn=True)
         start_position = go.Position(
             board=start_board,
             n=0,
@@ -155,16 +158,16 @@ class TestPosition(GoPositionTestCase):
             player1turn=True,
         )
         expected_board = load_board(EMPTY_ROW * 5 + '''
-            BBBB.....
-            B..B.....
-            .B.B.....
-            ..BB.....
-        ''')
+            XXXX.....
+            X..X.....
+            .X.X.....
+            ..XX.....
+        ''', player1turn=False)
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=6.5,
-            caps=(7, 2),
+            komi=-6.5,
+            caps=(2, 7),
             groups=go.deduce_groups(expected_board),
             ko=None,
             last=pc('B2'),
@@ -176,9 +179,9 @@ class TestPosition(GoPositionTestCase):
 
     def test_ko_move(self):
         start_board = load_board('''
-            .WB......
-            WB.......
-        ''' + EMPTY_ROW * 7)
+            .OX......
+            OX.......
+        ''' + EMPTY_ROW * 7, player1turn=True)
         start_position = go.Position(
             board=start_board,
             n=0,
@@ -191,13 +194,13 @@ class TestPosition(GoPositionTestCase):
             player1turn=True,
         )
         expected_board = load_board('''
-            B.B......
-            WB.......
-        ''' + EMPTY_ROW * 7)
+            X.X......
+            OX.......
+        ''' + EMPTY_ROW * 7, player1turn=False)
         expected_position = go.Position(
             board=expected_board,
             n=1,
-            komi=6.5,
+            komi=-6.5,
             caps=(2, 2),
             groups=go.deduce_groups(expected_board),
             ko=pc('B9'),
@@ -230,16 +233,16 @@ class TestPosition(GoPositionTestCase):
 class TestScoring(unittest.TestCase):
     def test_scoring(self):
             board = load_board('''
-                .BB......
-                WWBB.....
-                WWWB...B.
-                WBB......
-                WWBBBBBB.
-                WWWBWBWBB
-                .W.WWBWWB
-                .W.W.WWBB
-                ......WWW
-            ''')
+                .XX......
+                OOXX.....
+                OOOX...X.
+                OXX......
+                OOXXXXXX.
+                OOOXOXOXX
+                .O.OOXOOX
+                .O.O.OOXX
+                ......OOO
+            ''', player1turn=True)
             position = go.Position(
                 board=board,
                 n=54,
@@ -255,21 +258,21 @@ class TestScoring(unittest.TestCase):
             self.assertEqual(position.score(), expected_score)
 
             board = load_board('''
-                BBB......
-                WWBB.....
-                WWWB...B.
-                WBB......
-                WWBBBBBB.
-                WWWBWBWBB
-                .W.WWBWWB
-                .W.W.WWBB
-                ......WWW
-            ''')
+                XXX......
+                OOXX.....
+                OOOX...X.
+                OXX......
+                OOXXXXXX.
+                OOOXOXOXX
+                .O.OOXOOX
+                .O.O.OOXX
+                ......OOO
+            ''', player1turn=False)
             position = go.Position(
                 board=board,
                 n=55,
-                komi=6.5,
-                caps=(2, 5),
+                komi=-6.5,
+                caps=(5, 2),
                 groups=go.deduce_groups(board),
                 ko=None,
                 last=None,

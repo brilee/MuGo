@@ -7,10 +7,10 @@ from test_utils import load_board, GoPositionTestCase
 go.set_board_size(9)
 EMPTY_ROW = '.' * go.N + '\n'
 TEST_BOARD = load_board('''
-.B.....WW
-B........
-BBBBBBBBB
-''' + EMPTY_ROW * 6)
+.X.....OO
+X........
+XXXXXXXXX
+''' + EMPTY_ROW * 6, player1turn=True)
 
 TEST_POSITION = go.Position(
     board=TEST_BOARD,

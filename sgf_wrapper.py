@@ -11,9 +11,10 @@ Since our Go position data structure flips all colors based on whose turn it is
 we have to look ahead at next move to correctly create a position.
 '''
 from collections import namedtuple
+import numpy as np
 
 import go
-from go import Position, place_stone, deduce_groups
+from go import Position, deduce_groups
 from utils import parse_sgf_coords as pc
 import sgf
 
@@ -26,46 +27,55 @@ def sgf_prop(value_list):
     else:
         return value_list
 
-# SGFs have a notion of "add stones" and "play stones".
-# Add stones can have arbitrary numbers of either color stone, and is used
-# to set up L+D puzzles or handicap stones.
-# SGF spec says that you shouldn't resolve captures in an add stone node.
-def handle_add_stones(pos, node):
-    black_stones_added = node.properties.get('AB', [])
-    white_stones_added = node.properties.get('AW', [])
-    working_board = pos.board
-    for b in black_stones_added:
-        working_board = place_stone(working_board, 1, pc(b))
-    for w in white_stones_added:
-        working_board = place_stone(working_board, -1, pc(w))
+def sgf_prop_get(props, key, default):
+    return sgf_prop(props.get(key, default))
+
+def handle_node(pos, node):
+    'A node can either add B+W stones, play as B, or play as W.'
+    props = node.properties
+    black_stones_added = [pc(coords) for coords in props.get('AB', [])]
+    white_stones_added = [pc(coords) for coords in props.get('AW', [])]
     if black_stones_added or white_stones_added:
-        return pos._replace(board=working_board, groups=deduce_groups(working_board))
+        return add_stones(pos, black_stones_added, white_stones_added)
+    # If B/W props are not present, then there is no move. But if it is present and equal to the empty string, then the move was a pass.
+    elif 'B' in props:
+        black_move = pc(props.get('B', [''])[0])
+        return play_move(pos, black_move, player1turn=True)
+    elif 'W' in props:
+        white_move = pc(props.get('W', [''])[0])
+        return play_move(pos, white_move, player1turn=False)
     else:
         return pos
 
+def add_stones(pos, black_stones_added, white_stones_added):
+    black_color, white_color = (go.BLACK, go.WHITE) if pos.player1turn else (go.WHITE, go.BLACK)
+    working_board = np.copy(pos.board)
+    for b in black_stones_added:
+        working_board[b] = black_color
+    for w in white_stones_added:
+        working_board[w] = white_color
+    return pos._replace(board=working_board, groups=deduce_groups(working_board))
+
+def play_move(pos, move, player1turn):
+    if pos.player1turn != player1turn:
+        pos = pos.flip_playerturn()
+    return pos.play_move(move)
+
 def get_next_move(node):
     if not node.next:
-        return None, None
+        return None
     props = node.next.properties
     if 'W' in props:
-        return 'W', props['W'][0] or None
+        return pc(props['W'][0])
     else:
-        return 'B', props['B'][0] or None
+        return pc(props['B'][0])
 
-# Play stones should have just 1 stone. Play is not necessarily alternating;
-# sometimes B plays repeatedly at the start in free handicap placement.
-# Must look at next node to figure out who was "supposed" to have played.
-def handle_play_stones(pos, node):
-    props = node.properties
-    if 'W' in props:
-        pos = pos.play_move(pc(props['W'][0]))
-    elif 'B' in props:
-        pos = pos.play_move(pc(props['B'][0]))
-    next_player, _ = get_next_move(node)
-    if next_player == 'W' and pos.player1turn:
-        pos = pos._replace(player1turn=False)
-    elif next_player == 'B' and not pos.player1turn:
-        pos = pos._replace(player1turn=True)
+def maybe_correct_next(pos, next_node):
+    if next_node is None:
+        return pos
+    if (('B' in next_node.properties and not pos.player1turn) or
+        ('W' in next_node.properties and pos.player1turn)):
+        pos = pos.flip_playerturn()
     return pos
 
 class SgfWrapper(object):
@@ -92,11 +102,11 @@ class SgfWrapper(object):
         pos = pos._replace(komi=self.komi)
         current_node = self.game.root
         while pos is not None and current_node is not None:
-            pos = handle_add_stones(pos, current_node)
-            pos = handle_play_stones(pos, current_node)
-            _, next_move = get_next_move(current_node)
-            current_node = current_node.next
+            pos = handle_node(pos, current_node)
+            pos = maybe_correct_next(pos, current_node.next)
+            next_move = get_next_move(current_node)
             yield PositionWithContext(pos, next_move, self.result)
+            current_node = current_node.next
 
 class PositionWithContext(namedtuple("SgfPosition", "position next_move result")):
     '''

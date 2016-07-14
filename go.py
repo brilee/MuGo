@@ -108,19 +108,19 @@ def deduce_groups(board):
 
     return find_groups(board, BLACK), find_groups(board, WHITE)
 
-def update_groups(board, existing_AP_groups, existing_OP_groups, c):
+def update_groups(board, existing_B_groups, existing_W_groups, c):
     '''
     When a move is played, update the list of groups and their liberties.
     This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
     The returned groups represent the state after the move has been played,
     but before captures are processed.
     '''
-    updated_AP_groups, groups_to_merge = [], []
-    for g in existing_AP_groups:
+    updated_B_groups, groups_to_merge = [], []
+    for g in existing_B_groups:
         if c in g.liberties:
             groups_to_merge.append(g)
         else:
-            updated_AP_groups.append(g)
+            updated_B_groups.append(g)
 
     new_stones = {c}
     new_liberties = set(n for n in NEIGHBORS[c] if board[n] == EMPTY)
@@ -128,26 +128,27 @@ def update_groups(board, existing_AP_groups, existing_OP_groups, c):
         new_stones = new_stones | g.stones
         new_liberties = new_liberties | g.liberties
     new_liberties = new_liberties - {c}
-    updated_AP_groups.append(Group(stones=new_stones, liberties=new_liberties))
+    updated_B_groups.append(Group(stones=new_stones, liberties=new_liberties))
 
-    updated_OP_groups = []
-    for g in existing_OP_groups:
+    updated_W_groups = []
+    for g in existing_W_groups:
         if c in g.liberties:
-            updated_OP_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
+            updated_W_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
         else:
-            updated_OP_groups.append(g)
+            updated_W_groups.append(g)
 
-    return updated_AP_groups, updated_OP_groups
+    return updated_B_groups, updated_W_groups
 
 class Position(namedtuple('Position', 'board n komi caps groups ko last last2 player1turn')):
     '''
-    board: a numpy array
+    board: a numpy array, with B to play.
     n: an int representing moves played so far
     komi: a float, representing points given to the second player.
-    caps: a (int, int) tuple of captures; caps[0] is the person to play.
+    caps: a (int, int) tuple of captures; caps[0] is the person to play (B).
     groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
     ko: a Move
     last, last2: a Move
+    player1turn: whether player 1 is B.
     '''
     @staticmethod
     def initial_state():
@@ -164,10 +165,14 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             FILL: '#',
             KO: '*',
         }
-        if self.ko is not None:
-            board = place_stone(self.board, KO, self.ko)
+        if not self.player1turn:
+            board = self.board * -1
+            captures = self.caps[1], self.caps[0]
         else:
             board = self.board
+            captures = self.caps
+        if self.ko is not None:
+            board = place_stone(board, KO, self.ko)
         raw_board_contents = []
         for i in range(N):
             row = []
@@ -175,25 +180,37 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                 appended = '<' if (i, j) == self.last else ' '
                 row.append(pretty_print_map[board[i,j]] + appended)
             raw_board_contents.append(''.join(row))
-        captures = self.caps
 
         row_labels = ['%2d ' % i for i in range(N, 0, -1)]
         annotated_board_contents = [''.join(r) for r in zip(row_labels, raw_board_contents, row_labels)]
         header_footer_rows = ['   ' + ' '.join('ABCDEFGHJKLMNOPQRST'[:N]) + '   ']
         annotated_board = '\n'.join(itertools.chain(header_footer_rows, annotated_board_contents, header_footer_rows))
-        details = "\nMove: {}. Captures B: {} W: {}\n".format(self.n + 1, *captures)
+        details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n, *captures)
         return annotated_board + details
 
     def pass_move(self):
         return Position(
-            board=self.board,
+            board=self.board * -1,
             n=self.n+1,
-            komi=self.komi,
-            caps=self.caps,
-            groups=self.groups,
+            komi=-self.komi,
+            caps=(self.caps[1], self.caps[0]),
+            groups=(self.groups[1], self.groups[0]),
             ko=None,
             last=None,
             last2=self.last,
+            player1turn=not self.player1turn,
+        )
+
+    def flip_playerturn(self):
+        return Position(
+            board=self.board * -1,
+            n=self.n,
+            komi=-self.komi,
+            caps=(self.caps[1], self.caps[0]),
+            groups=(self.groups[1], self.groups[0]),
+            ko=self.ko,
+            last=self.last,
+            last2=self.last2,
             player1turn=not self.player1turn,
         )
 
@@ -209,57 +226,48 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         if self.board[c] != 0:
             return None
 
-        AP_color = BLACK if self.player1turn else WHITE
-        OP_color = AP_color * -1
-        AP_groups, OP_groups = self.groups if self.player1turn else self.groups[::-1]
+        # Convention: B's stone is played. All B/W groups continue to be
+        # referred to as B and W. At the end, the return position is flipped.
+        B_groups, W_groups = self.groups
 
-        working_board = place_stone(self.board, AP_color, c)
-        new_AP_groups, new_OP_groups = update_groups(working_board, AP_groups, OP_groups, c)
+        working_board = place_stone(self.board, BLACK, c)
+        new_B_groups, new_W_groups = update_groups(working_board, B_groups, W_groups, c)
 
-        # process OP captures first, then your own suicides.
+        # process W's captures first, then your own suicides.
         # As stones are removed, liberty counts become inaccurate.
-        OP_captures = set()
-        surviving_OP_groups = []
-        for group in new_OP_groups:
+        W_captured = set()
+        final_W_groups = []
+        for group in new_W_groups:
             if not group.liberties:
-                OP_captures |= group.stones
+                W_captured |= group.stones
                 capture_stones(working_board, group.stones)
             else:
-                surviving_OP_groups.append(group)
+                final_W_groups.append(group)
 
-        final_OP_groups = surviving_OP_groups
-        final_AP_groups = new_AP_groups
-        if OP_captures:
-            # recalculate liberties for groups adjacent to a captured OP group
-            coords_with_updates = find_neighbors(AP_color, working_board, OP_captures)
-            final_AP_groups = [g if not (g.stones & coords_with_updates)
+        if W_captured:
+            # recalculate liberties for groups adjacent to a captured W group
+            coords_with_updates = find_neighbors(BLACK, working_board, W_captured)
+            final_B_groups = [g if not (g.stones & coords_with_updates)
                 else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
-                for g in new_AP_groups]
+                for g in new_B_groups]
         else:
-            # suicide can only happen if no O captures were made
-            for group in new_AP_groups:
-                if not group.liberties:
-                    # suicides are illegal!
-                    return None
+            # Check for suicide. Can only happen if there were no captures.
+            if not all(g.liberties for g in new_B_groups):
+                return None
+            final_B_groups = new_B_groups
 
-        if len(OP_captures) == 1 and is_eyeish(self.board, c) == OP_color:
-            ko = list(OP_captures)[0]
+
+        if len(W_captured) == 1 and is_koish(self.board, c) == WHITE:
+            ko = list(W_captured)[0]
         else:
             ko = None
 
-        if self.player1turn:
-            groups = (final_AP_groups, final_OP_groups)
-            caps = (self.caps[0] + len(OP_captures), self.caps[1])
-        else:
-            groups = (final_OP_groups, final_AP_groups)
-            caps = (self.caps[0], self.caps[1] + len(OP_captures))
-
         return Position(
-            board=working_board,
+            board=working_board * -1,
             n=self.n + 1,
-            komi=self.komi,
-            caps=caps,
-            groups=groups,
+            komi=-self.komi,
+            caps=(self.caps[1], self.caps[0] + len(W_captured)),
+            groups=(final_W_groups, final_B_groups),
             ko=ko,
             last=c,
             last2=self.last,
@@ -267,7 +275,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         )
 
     def score(self):
-        'Returns score from B perspective'
+        'Returns score from player 1 perspective'
         working_board = np.copy(self.board)
         while EMPTY in working_board:
             unassigned_spaces = np.where(working_board == EMPTY)
@@ -285,6 +293,12 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
                 territory_color = UNKNOWN # dame, or seki
             working_board[working_board == FILL] = territory_color
 
-        return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
+        score_B_perspective = np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
+        if self.player1turn:
+            score = score_B_perspective
+        else:
+            score = -score_B_perspective
+
+        return score
 
 set_board_size(19)

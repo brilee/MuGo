@@ -14,7 +14,7 @@ def unflatten_coords(f):
 
 def parse_sgf_coords(s):
     'Interprets coords. aa is top left corner; sa is top right corner'
-    if not s:
+    if s is None or s == '':
         return None
     return SGF_COLUMNS.index(s[1]), SGF_COLUMNS.index(s[0])
 

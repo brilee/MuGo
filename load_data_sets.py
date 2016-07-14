@@ -84,7 +84,7 @@ class DataSet(object):
     def from_positions_w_context(positions_w_context, is_test=False):
         positions, next_moves, results = zip(*positions_w_context)
         extracted_features = bulk_extract(DEFAULT_FEATURES, positions)
-        encoded_moves = make_onehot(map(utils.parse_sgf_to_flat, next_moves), go.N ** 2)
+        encoded_moves = make_onehot(map(utils.flatten_coords, next_moves), go.N ** 2)
         return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
 
     def write(self, filename):
