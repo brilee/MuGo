@@ -26,6 +26,7 @@ import tensorflow as tf
 
 import features
 import go
+import utils
 
 class PolicyNetwork(object):
     def __init__(self, num_input_planes, k=32, num_int_conv_layers=3):
@@ -122,8 +123,11 @@ class PolicyNetwork(object):
             self.session.run(self.train_step, feed_dict={self.x: batch_x, self.y: batch_y})
 
     def run(self, position):
+        'Return a sorted list of (probability, move) tuples'
         processed_position = features.DEFAULT_FEATURES.extract(position)
-        return self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
+        probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
+        move_probs = [(prob, utils.unflatten_coords(i)) for i, prob in enumerate(probabilities)]
+        return sorted(move_probs, reversed=True)
 
     def check_accuracy(self, test_data):
         weight_summaries = self.session.run(self.weight_summaries)
