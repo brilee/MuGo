@@ -10,7 +10,7 @@ from strategies import RandomPlayer, PolicyNetworkBestMovePlayer
 from policy import PolicyNetwork
 from load_data_sets import process_raw_data, DataSet
 
-TRAINING_CHUNK_RE = re.compile("train\d+.chunk")
+TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
 
 def gtp(strategy, read_file=None):
     if strategy == 'random':
@@ -44,15 +44,15 @@ def preprocess(*data_sets, processed_dir="processed_data"):
 
     test_dataset, training_datasets = process_raw_data(*data_sets)
 
-    test_filename = os.path.join(processed_dir, "test.chunk")
+    test_filename = os.path.join(processed_dir, "test.chunk.gz")
     test_dataset.write(test_filename)
 
     for i, train_dataset in enumerate(training_datasets):
-        train_filename = os.path.join(processed_dir, "train%s.chunk" % i)
+        train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
         train_dataset.write(train_filename)
 
 def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None):
-    test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk"))
+    test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))
     train_chunk_files = [os.path.join(processed_dir, fname) 
         for fname in os.listdir(processed_dir)
         if TRAINING_CHUNK_RE.match(fname)]

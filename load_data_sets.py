@@ -1,5 +1,6 @@
-import os
+import gzip
 import numpy as np
+import os
 import struct
 import sys
 
@@ -91,14 +92,14 @@ class DataSet(object):
         header_bytes = struct.pack(CHUNK_HEADER_FORMAT, self.data_size, self.board_size, self.input_planes, self.is_test)
         position_bytes = self.pos_features.tostring()
         next_move_bytes = self.next_moves.tostring()
-        with open(filename, "wb") as f:
+        with gzip.open(filename, "wb") as f:
             f.write(header_bytes)
             f.write(position_bytes)
             f.write(next_move_bytes)
 
     @staticmethod
     def read(filename):
-        with open(filename, "rb") as f:
+        with gzip.open(filename, "rb") as f:
             header_bytes = f.read(CHUNK_HEADER_SIZE)
             data_size, board_size, input_planes, is_test = struct.unpack(CHUNK_HEADER_FORMAT, header_bytes)
             position_bytes = f.read(data_size * board_size * board_size * input_planes * 4)
