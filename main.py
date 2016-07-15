@@ -1,6 +1,7 @@
 import argparse
 import argh
 import os
+import random
 import re
 import sys
 import gtp as gtp_lib
@@ -61,10 +62,12 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
     if logdir is not None:
         n.initialize_logging(logdir)
     for i in range(epochs):
+        random.shuffle(train_chunk_files)
         for file in train_chunk_files:
+            print("Using %s" % file)
             train_dataset = DataSet.read(file)
             n.train(train_dataset)
-        n.check_accuracy(test_dataset)
+            n.check_accuracy(test_dataset)
     if save_file is not None:
         n.save_variables(save_file)
         print("Finished training. New model saved to %s" % save_file, file=sys.stderr)
