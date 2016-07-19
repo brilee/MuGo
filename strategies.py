@@ -67,7 +67,7 @@ class MCTSNode():
     A MCTSNode has two states: plain, and expanded.
     An plain MCTSNode merely knows its Q + U values, so that a decision
     can be made about which MCTS node to expand during the selection phase.
-    An expanded MCTSNode also knows the actual position at that node,
+    When expanded, a MCTSNode also knows the actual position at that node,
     as well as followup moves/probabilities via the policy network.
     Each of these followup moves is instantiated as a plain MCTSNode.
     '''
@@ -81,8 +81,8 @@ class MCTSNode():
     def __init__(self, parent, move, prior):
         self.parent = parent # pointer to another MCTSNode
         self.move = move # the move that led to this node
-        self.position = None # lazily computed upon expansion
         self.prior = prior
+        self.position = None # lazily computed upon expansion
         self.children = {} # map of moves to resulting MCTSNode
         self.Q = self.parent.Q if self.parent is not None else 0.0 # average of all outcomes involving this node
         self.U = prior # monte carlo exploration bonus
@@ -93,7 +93,7 @@ class MCTSNode():
         return self.Q + self.U
 
     def is_expanded(self):
-        return self.children == {}
+        return self.position is not None
 
     def compute_position(self):
         self.position = self.parent.position.play_move(self.move)
@@ -123,6 +123,7 @@ class MCTS(GtpInterface):
         super().__init__()
         self.policy_network = policy_network
         self.seconds_per_move = seconds_per_move
+        self.max_rollout_depth = go.N * go.N * 3
 
     def suggest_move(self, position):
         start = time.time()
@@ -130,6 +131,8 @@ class MCTS(GtpInterface):
         root = MCTSNode.root_node(position, move_probs)
         while time.time() - start < self.seconds_per_move:
             self.tree_search(root)
+        # there's a theoretical bug here: if you refuse to pass, this AI will
+        # eventually start filling in its own eyes.
         return max(root.children.keys(), key=lambda move: root.children[move].N)
 
     def tree_search(self, root):
@@ -151,4 +154,21 @@ class MCTS(GtpInterface):
     def estimate_value(self, chosen_leaf):
         # Estimate value of position using rollout only (for now).
         # (TODO: Value network; average the value estimations from rollout + value network)
-        return 0
+        leaf_position = chosen_leaf.position
+        current = leaf_position
+        while current.N < self.max_rollout_depth:
+            move_probs = self.policy_network.run(current)
+            position = self.play_valid_move(current, move_probs)
+            if position.last is None and position.last2 is None and position.N != 0:
+                break
+
+        perspective = 1 if leaf_position.player1turn else -1
+        return current.score() * perspective
+
+    def play_valid_move(self, position, move_probs):
+        for _, move in move_probs:
+            # TODO: add self-eye-filling detection.
+            candidate_pos = position.play_move(move)
+            if candidate_pos is not None:
+                return candidate_pos
+        return position.pass_move()
