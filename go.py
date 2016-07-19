@@ -154,9 +154,6 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
     def initial_state():
         return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=([], []), ko=None, last=None, last2=None, player1turn=True)
 
-    def possible_moves(self):
-        return [c for c in ALL_COORDS if self.board[c] == EMPTY]
-
     def __str__(self):
         pretty_print_map = {
             WHITE: 'O',
@@ -219,6 +216,12 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         # No suicides
         # Chinese/area scoring
         # Positional superko (this is very crudely approximate at the moment.)
+
+        # Checking a move for legality is actually very expensive, because 
+        # the only way to reliably handle all suicide/capture situations is to
+        # actually play the move and see if any issues arise.
+        # Thus, there is no "is_legal(self, move)" or "get_legal_moves(self)".
+        # You can only play the move and check if the return value is None.
         if c is None:
             return self.pass_move()
         if c == self.ko:

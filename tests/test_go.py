@@ -91,6 +91,41 @@ class TestEyeHandling(GoPositionTestCase):
         self.assertEqual(go.is_koish(TEST_BOARD, pc('E5')), None)
 
 class TestPosition(GoPositionTestCase):
+    def test_legal_moves(self):
+        board = load_board('''
+            .XXXXXXXO
+            XX.OOOOO.
+            OOOOOOOOO
+            XXXXXXXX.
+            OOOOOOOOO
+            XXXXXXXXX
+            XXXXXXXXX
+            XXXXXXXXX
+            XXXXXXXX.
+        ''', player1turn=True)
+        position = go.Position(
+            board=board,
+            n=0,
+            komi=6.5,
+            caps=(0, 0),
+            groups=go.deduce_groups(board),
+            ko=pc('J8'),
+            last=None,
+            last2=None,
+            player1turn=True,
+        )
+        empty_spots = pc_set('A9 C8 J8 J6 J1')
+        B_legal_moves = pc_set('A9 C8 J6')
+        for move in empty_spots:
+            result = position.play_move(move)
+            self.assertEqual(result is not None, move in B_legal_moves)
+
+        pass_position = position.pass_move()
+        W_legal_moves = pc_set('C8 J8 J6 J1')
+        for move in empty_spots:
+            result = pass_position.play_move(move)
+            self.assertEqual(result is not None, move in W_legal_moves)
+
     def test_move(self):
         start_position = go.Position(
             board=TEST_BOARD,

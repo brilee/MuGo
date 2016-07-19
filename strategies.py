@@ -46,7 +46,12 @@ class GtpInterface(object):
 
 class RandomPlayer(GtpInterface):
     def suggest_move(self, position):
-        return random.choice(position.possible_moves())
+        possible_moves = go.ALL_COORDS
+        random.shuffle(possible_moves)
+        for move in possible_moves:
+            if position.play_move(move) is not None:
+                return move
+        return None
 
 class PolicyNetworkBestMovePlayer(GtpInterface):
     def __init__(self, policy_network):
@@ -132,6 +137,10 @@ class MCTS(GtpInterface):
         chosen_leaf = root.select_leaf()
         # expansion
         position = chosen_leaf.compute_position()
+        if position is None:
+            # See go.Position.play_move for notes on detecting legality
+            del chosen_leaf.parent.children[chosen_leaf.move]
+            return
         move_probs = self.policy_network.run(position)
         chosen_leaf.expand(move_probs)
         # evaluation
