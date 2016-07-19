@@ -71,4 +71,3 @@ class GoPositionTestCase(unittest.TestCase):
         self.assertEqual(canonical_p1.groups, canonical_p2.groups)
         self.assertEqual(canonical_p1.caps, canonical_p2.caps)
         self.assertEqual(canonical_p1.ko, canonical_p2.ko)
-

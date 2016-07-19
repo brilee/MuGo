@@ -70,4 +70,3 @@ class TestSgfWrapper(GoPositionTestCase):
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
         self.assertFalse(positions_w_context[-1].is_usable())
         self.assertTrue(positions_w_context[-2].is_usable())
-

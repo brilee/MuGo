@@ -223,7 +223,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             return self.pass_move()
         if c == self.ko:
             return None
-        if self.board[c] != 0:
+        if self.board[c] != EMPTY:
             return None
 
         # Convention: B's stone is played. All B/W groups continue to be

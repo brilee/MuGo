@@ -24,8 +24,3 @@ class TestDataSets(GoPositionTestCase):
         self.assertEqual(dataset.next_moves.shape, recovered.next_moves.shape)
         self.assertEqualNPArray(dataset.next_moves, recovered.next_moves)
         self.assertEqualNPArray(dataset.pos_features, recovered.pos_features)
-        # delete the temp file?
-
-
-
-
