@@ -84,11 +84,33 @@ class TestGroupHandling(GoPositionTestCase):
         self.assertEqual(existing_O_groups, updated_O_groups)
 
 class TestEyeHandling(GoPositionTestCase):
-    def test_eyeish(self):
+    def test_is_koish(self):
         self.assertEqual(go.is_koish(TEST_BOARD, pc('A9')), go.BLACK)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('B8')), None)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('E5')), None)
+
+    def test_is_eye(self):
+        board = load_board('''
+            .XX...XXX
+            X.X...X.X
+            XX.....X.
+            ........X
+            XXXX.....
+            OOOX....O
+            X.OXX.OO.
+            .XO.X.O.O
+            XXO.X.OO.
+        ''', player1turn=True)
+        B_eyes = pc_set('A9 B8 H8')
+        W_eyes = pc_set('H2 J1')
+        not_eyes = pc_set('A2 B3 J7 E5 J3')
+        for be in B_eyes:
+            self.assertEqual(go.is_eye(board, be), go.BLACK)
+        for we in W_eyes:
+            self.assertEqual(go.is_eye(board, we), go.WHITE)
+        for ne in not_eyes:
+            self.assertEqual(go.is_eye(board, ne), None)
 
 class TestPosition(GoPositionTestCase):
     def test_legal_moves(self):

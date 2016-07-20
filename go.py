@@ -78,12 +78,28 @@ def find_liberties(board, stones):
 def is_koish(board, c):
     'Check if c is surrounded on all sides by 1 color, and return that color'
     if board[c] != EMPTY: return None
-    surrounding_colors = {board[n] for n in NEIGHBORS[c]}
-    possessed_by = surrounding_colors.intersection({BLACK, WHITE, EMPTY})
-    if len(possessed_by) == 1 and not EMPTY in possessed_by:
-        return list(possessed_by)[0]
+    neighbors = {board[n] for n in NEIGHBORS[c]}
+    if len(neighbors) == 1 and not EMPTY in neighbors:
+        return list(neighbors)[0]
     else:
         return None
+
+def is_eye(board, c):
+    'Check if c is an eye, for the purpose of restricting MC rollouts.'
+    color = is_koish(board, c)
+    if color is None:
+        return None
+    diagonal_faults = 0
+    diagonals = DIAGONALS[c]
+    if len(diagonals) < 4:
+        diagonal_faults += 1
+    for d in diagonals:
+        if not (board[d] == color or is_koish(board, d) == color):
+            diagonal_faults += 1
+    if diagonal_faults > 1:
+        return None
+    else:
+        return color
 
 class Group(namedtuple('Group', 'stones liberties')):
     '''

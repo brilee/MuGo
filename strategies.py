@@ -167,7 +167,8 @@ class MCTS(GtpInterface):
 
     def play_valid_move(self, position, move_probs):
         for _, move in move_probs:
-            # TODO: add self-eye-filling detection.
+            if go.is_eye(position.board, move):
+                continue
             candidate_pos = position.play_move(move)
             if candidate_pos is not None:
                 return candidate_pos
