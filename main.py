@@ -7,7 +7,7 @@ import sys
 import gtp as gtp_lib
 
 from features import DEFAULT_FEATURES
-from strategies import RandomPlayer, PolicyNetworkBestMovePlayer
+from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, MCTS
 from policy import PolicyNetwork
 from load_data_sets import process_raw_data, DataSet
 
@@ -20,8 +20,13 @@ def gtp(strategy, read_file=None):
         policy_network = PolicyNetwork(DEFAULT_FEATURES.planes)
         policy_network.initialize_variables(read_file)
         instance = PolicyNetworkBestMovePlayer(policy_network)
+    elif strategy == 'mcts':
+        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes)
+        policy_network.initialize_variables(read_file)
+        instance = MCTS(policy_network)
     else:
         sys.stderr.write("Unknown strategy")
+        sys.exit()
     gtp_engine = gtp_lib.Engine(instance)
     sys.stderr.write("GTP engine ready\n")
     sys.stderr.flush()

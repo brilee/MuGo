@@ -127,7 +127,7 @@ class PolicyNetwork(object):
         processed_position = features.DEFAULT_FEATURES.extract(position)
         probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
         move_probs = [(prob, utils.unflatten_coords(i)) for i, prob in enumerate(probabilities)]
-        return sorted(move_probs, reversed=True)
+        return sorted(move_probs, reverse=True)
 
     def check_accuracy(self, test_data):
         weight_summaries = self.session.run(self.weight_summaries)

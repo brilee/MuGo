@@ -1,4 +1,5 @@
 import random
+import sys
 import time
 
 import gtp
@@ -88,6 +89,9 @@ class MCTSNode():
         self.U = prior # monte carlo exploration bonus
         self.N = 0 # number of times node was visited
 
+    def __repr__(self):
+        return "<MCTSNode move=%s prior=%s score=%s is_expanded=%s>" % (self.move, self.prior, self.action_score, self.is_expanded())
+
     @property
     def action_score(self):
         return self.Q + self.U
@@ -109,12 +113,13 @@ class MCTSNode():
         self.U = self.prior / (1 + self.N)
         self.N += 1
         if self.parent is not None:
-            self.parent.backup_value(value)
+            # must invert, because alternate layers have opposite desires
+            self.parent.backup_value(-value)
 
     def select_leaf(self):
         current = self
         while current.is_expanded():
-            current = max(self.children.values(), key=lambda node: node.action_score)
+            current = max(current.children.values(), key=lambda node: node.action_score)
         return current
 
 
@@ -133,22 +138,26 @@ class MCTS(GtpInterface):
             self.tree_search(root)
         # there's a theoretical bug here: if you refuse to pass, this AI will
         # eventually start filling in its own eyes.
-        return max(root.children.keys(), key=lambda move: root.children[move].N)
+        return max(root.children.keys(), key=lambda move, root=root: root.children[move].N)
 
     def tree_search(self, root):
+        print("tree search", file=sys.stderr)
         # selection
         chosen_leaf = root.select_leaf()
         # expansion
         position = chosen_leaf.compute_position()
         if position is None:
+            print("illegal move!", file=sys.stderr)
             # See go.Position.play_move for notes on detecting legality
             del chosen_leaf.parent.children[chosen_leaf.move]
             return
+        print("Investigating following position:\n%s" % (chosen_leaf.position,), file=sys.stderr)
         move_probs = self.policy_network.run(position)
         chosen_leaf.expand(move_probs)
         # evaluation
         value = self.estimate_value(chosen_leaf)
         # backup
+        print("value: %s" % value, file=sys.stderr)
         chosen_leaf.backup_value(value)
 
     def estimate_value(self, chosen_leaf):
@@ -156,11 +165,13 @@ class MCTS(GtpInterface):
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
         current = leaf_position
-        while current.N < self.max_rollout_depth:
+        while current.n < self.max_rollout_depth:
             move_probs = self.policy_network.run(current)
-            position = self.play_valid_move(current, move_probs)
-            if position.last is None and position.last2 is None and position.N != 0:
+            current = self.play_valid_move(current, move_probs)
+            if current.last is None and current.last2 is None and current.n != 0:
                 break
+        else:
+            print("max rollout depth exceeded!", file=sys.stderr)
 
         perspective = 1 if leaf_position.player1turn else -1
         return current.score() * perspective
