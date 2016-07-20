@@ -1,5 +1,6 @@
 import numpy as np
 import re
+import time
 import unittest
 
 import go
@@ -55,6 +56,14 @@ class TestUtils(unittest.TestCase):
 
 
 class GoPositionTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.start_time = time.time()
+
+    @classmethod
+    def tearDownClass(cls):
+        print("\n%s.%s: %.3f seconds" % (cls.__module__, cls.__name__, time.time() - cls.start_time))
+
     def setUp(self):
         go.set_board_size(9)
 
