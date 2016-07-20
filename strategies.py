@@ -106,6 +106,8 @@ class MCTSNode():
     def expand(self, move_probabilities):
         self.children = {move: MCTSNode(self, move, prob)
             for prob, move in move_probabilities}
+        # Pass should always be an option! Say, for example, seki.
+        self.children[None] = MCTSNode(self, None, 0)
 
     def backup_value(self, value):
         # Update the average, without having to remember previous values
