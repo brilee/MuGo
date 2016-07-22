@@ -111,9 +111,11 @@ class MCTSNode():
 
     def backup_value(self, value):
         # Update the average, without having to remember previous values
-        self.Q = self.Q + (value - self.Q) / (self.N + 1)
-        self.U = self.prior / (1 + self.N)
-        self.N += 1
+        self.Q, self.U, self.N = (
+            self.Q + (value - self.Q) / (self.N + 1),
+            self.prior / (1 + self.N),
+            self.N + 1
+        )
         if self.parent is not None:
             # must invert, because alternate layers have opposite desires
             self.parent.backup_value(-value)
