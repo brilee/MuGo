@@ -144,6 +144,8 @@ class MCTS(GtpInterface):
         self.max_rollout_depth = go.N * go.N * 3
 
     def suggest_move(self, position):
+        if position.caps[0] + 50 < position.caps[1]:
+            return gtp.RESIGN
         start = time.time()
         move_probs = self.policy_network.run(position)
         root = MCTSNode.root_node(position, move_probs)

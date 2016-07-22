@@ -1,3 +1,4 @@
+import gtp
 import go
 
 KGS_COLUMNS = 'ABCDEFGHJKLMNOPQRST'
@@ -29,11 +30,13 @@ def parse_kgs_coords(s):
 
 def parse_pygtp_coords(vertex):
     'Interprets coords. (1, 1) is bottom left; (1, 9) is top left.'
-    if vertex == (0, 0):
+    if vertex in (gtp.PASS, gtp.RESIGN):
         return None
     return go.N - vertex[1], vertex[0] - 1
 
 def unparse_pygtp_coords(c):
+    if c == gtp.RESIGN:
+        return gtp.RESIGN
     if c is None:
-        return (0, 0)
+        return gtp.PASS
     return c[1] + 1, go.N - c[0]
