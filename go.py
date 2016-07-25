@@ -155,7 +155,7 @@ def update_groups(board, existing_B_groups, existing_W_groups, c):
 
     return updated_B_groups, updated_W_groups
 
-class Position(namedtuple('Position', 'board n komi caps groups ko last last2 player1turn')):
+class Position(namedtuple('Position', 'board n komi caps groups ko recent player1turn')):
     '''
     board: a numpy array, with B to play.
     n: an int representing moves played so far
@@ -163,12 +163,12 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
     caps: a (int, int) tuple of captures; caps[0] is the person to play (B).
     groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
     ko: a Move
-    last, last2: a Move
+    recent: a tuple of Moves, such that recent[-1] is the last move.
     player1turn: whether player 1 is B.
     '''
     @staticmethod
     def initial_state():
-        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=([], []), ko=None, last=None, last2=None, player1turn=True)
+        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=([], []), ko=None, recent=tuple(), player1turn=True)
 
     def __str__(self):
         pretty_print_map = {
@@ -190,7 +190,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
         for i in range(N):
             row = []
             for j in range(N):
-                appended = '<' if (i, j) == self.last else ' '
+                appended = '<' if (self.recent and (i, j) == self.recent[-1]) else ' '
                 row.append(pretty_print_map[board[i,j]] + appended)
             raw_board_contents.append(''.join(row))
 
@@ -209,8 +209,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             caps=(self.caps[1], self.caps[0]),
             groups=(self.groups[1], self.groups[0]),
             ko=None,
-            last=None,
-            last2=self.last,
+            recent=self.recent + (None,),
             player1turn=not self.player1turn,
         )
 
@@ -222,8 +221,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             caps=(self.caps[1], self.caps[0]),
             groups=(self.groups[1], self.groups[0]),
             ko=self.ko,
-            last=self.last,
-            last2=self.last2,
+            recent=self.recent,
             player1turn=not self.player1turn,
         )
 
@@ -288,8 +286,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko last last2 pl
             caps=(self.caps[1], self.caps[0] + len(W_captured)),
             groups=(final_W_groups, final_B_groups),
             ko=ko,
-            last=c,
-            last2=self.last,
+            recent=self.recent + (c,),
             player1turn=not self.player1turn,
         )
 

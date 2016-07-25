@@ -172,7 +172,7 @@ class MCTS(GtpInterface):
         while current.n < self.max_rollout_depth:
             move_probs = self.policy_network.run(current)
             current = self.play_valid_move(current, move_probs)
-            if current.last is None and current.last2 is None and current.n != 0:
+            if len(current.recent) > 2 and current.recent[-1] == current.recent[-2] == None:
                 break
         else:
             print("max rollout depth exceeded!", file=sys.stderr)

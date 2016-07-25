@@ -132,8 +132,7 @@ class TestPosition(GoPositionTestCase):
             caps=(0, 0),
             groups=go.deduce_groups(board),
             ko=pc('J8'),
-            last=None,
-            last2=None,
+            recent=tuple(),
             player1turn=True,
         )
         empty_spots = pc_set('A9 C8 J8 J6 J1')
@@ -156,8 +155,7 @@ class TestPosition(GoPositionTestCase):
             caps=(1, 2),
             groups=go.deduce_groups(TEST_BOARD),
             ko=None,
-            last=None,
-            last2=None,
+            recent=tuple(),
             player1turn=True,
         )
         expected_board = load_board('''
@@ -171,8 +169,7 @@ class TestPosition(GoPositionTestCase):
             caps=(2, 1),
             groups=go.deduce_groups(expected_board),
             ko=None,
-            last=pc('C9'),
-            last2=None,
+            recent=(pc('C9'),),
             player1turn=False,
         )
         actual_position = start_position.play_move(pc('C9'))
@@ -189,8 +186,7 @@ class TestPosition(GoPositionTestCase):
             caps=(1, 2),
             groups=go.deduce_groups(expected_board2),
             ko=None,
-            last=pc('J8'),
-            last2=pc('C9'),
+            recent=(pc('C9'), pc('J8')),
             player1turn=True,
         )
         actual_position2 = actual_position.play_move(pc('J8'))
@@ -210,8 +206,7 @@ class TestPosition(GoPositionTestCase):
             caps=(1, 2),
             groups=go.deduce_groups(start_board),
             ko=None,
-            last=None,
-            last2=None,
+            recent=tuple(),
             player1turn=True,
         )
         expected_board = load_board(EMPTY_ROW * 5 + '''
@@ -227,8 +222,7 @@ class TestPosition(GoPositionTestCase):
             caps=(2, 7),
             groups=go.deduce_groups(expected_board),
             ko=None,
-            last=pc('B2'),
-            last2=None,
+            recent=(pc('B2'),),
             player1turn=False,
         )
         actual_position = start_position.play_move(pc('B2'))
@@ -246,8 +240,7 @@ class TestPosition(GoPositionTestCase):
             caps=(1, 2),
             groups=go.deduce_groups(start_board),
             ko=None,
-            last=None,
-            last2=None,
+            recent=tuple(),
             player1turn=True,
         )
         expected_board = load_board('''
@@ -261,8 +254,7 @@ class TestPosition(GoPositionTestCase):
             caps=(2, 2),
             groups=go.deduce_groups(expected_board),
             ko=pc('B9'),
-            last=pc('A9'),
-            last2=None,
+            recent=(pc('A9'),),
             player1turn=False,
         )
         actual_position = start_position.play_move(pc('A9'))
@@ -281,8 +273,7 @@ class TestPosition(GoPositionTestCase):
             caps=(2, 3),
             groups=go.deduce_groups(start_board),
             ko=pc('A9'),
-            last=pc('B9'),
-            last2=None,
+            recent=(pc('A9'), None, None, pc('B9')),
             player1turn=True,
         )
         self.assertEqualPositions(ko_delayed_retake, expected_position)
@@ -307,8 +298,7 @@ class TestScoring(unittest.TestCase):
                 caps=(2, 5),
                 groups=go.deduce_groups(board),
                 ko=None,
-                last=None,
-                last2=None,
+                recent=tuple(),
                 player1turn=True,
             )
             expected_score = 1.5
@@ -332,8 +322,7 @@ class TestScoring(unittest.TestCase):
                 caps=(5, 2),
                 groups=go.deduce_groups(board),
                 ko=None,
-                last=None,
-                last2=None,
+                recent=tuple(),
                 player1turn=False,
             )
             expected_score = 2.5

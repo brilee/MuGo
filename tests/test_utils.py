@@ -80,3 +80,5 @@ class GoPositionTestCase(unittest.TestCase):
         self.assertEqual(canonical_p1.groups, canonical_p2.groups)
         self.assertEqual(canonical_p1.caps, canonical_p2.caps)
         self.assertEqual(canonical_p1.ko, canonical_p2.ko)
+        r_len = min(len(canonical_p1.recent), len(canonical_p2.recent))
+        self.assertEqual(canonical_p1.recent[-r_len:], canonical_p2.recent[-r_len:])

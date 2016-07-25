@@ -1,5 +1,3 @@
-import unittest
-
 import features
 import go
 from test_utils import load_board, GoPositionTestCase
@@ -19,8 +17,7 @@ TEST_POSITION = go.Position(
     caps=(1,2),
     groups=go.deduce_groups(TEST_BOARD),
     ko=None,
-    last=None,
-    last2=None,
+    recent=tuple(),
     player1turn=True,
 )
 

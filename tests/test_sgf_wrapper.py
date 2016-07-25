@@ -34,8 +34,7 @@ class TestSgfWrapper(GoPositionTestCase):
             caps=(0, 0),
             groups=go.deduce_groups(final_board),
             ko=None,
-            last=pc('E5'),
-            last2=pc('G3'),
+            recent=(pc('E5'), pc('D3')),
             player1turn=False,
         )
         sgf = sgf_wrapper.SgfWrapper(JAPANESE_HANDICAP_SGF)
@@ -61,8 +60,7 @@ class TestSgfWrapper(GoPositionTestCase):
             caps=(2, 7),
             groups=go.deduce_groups(final_board),
             ko=None,
-            last=pc('F9'),
-            last2=pc('E9'),
+            recent=(pc('E9'), pc('F9')),
             player1turn=False,
         )
         sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
