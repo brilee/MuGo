@@ -1,3 +1,5 @@
+import numpy as np
+
 import features
 import go
 from test_utils import load_board, GoPositionTestCase
@@ -17,7 +19,7 @@ TEST_POSITION = go.Position(
     caps=(1,2),
     groups=go.deduce_groups(TEST_BOARD),
     ko=None,
-    recent=tuple(),
+    recent=((0, 1), (0, 8), (1, 0)),
     player1turn=True,
 )
 
@@ -49,3 +51,18 @@ class TestFeatureExtraction(GoPositionTestCase):
         self.assertEqual(f[0, 8, 2], 1)
         # the group at 1, 0 has 18 liberties
         self.assertEqual(f[1, 0, 7], 1)
+
+    def test_recent_moves_feature(self):
+        f = features.RecentMoveFeature.extract(TEST_POSITION)
+        self.assertEqual(f.shape, (9, 9, features.RecentMoveFeature.planes))
+        # most recent move at (1, 0)
+        self.assertEqual(f[1, 0, 0], 1)
+        self.assertEqual(f[1, 0, 3], 0)
+        # second most recent move at (0, 8)
+        self.assertEqual(f[0, 8, 1], 1)
+        self.assertEqual(f[0, 8, 0], 0)
+        # third most recent move at (0, 1)
+        self.assertEqual(f[0, 1, 2], 1)
+        # no more older moves
+        self.assertEqualNPArray(f[:, :, 3], np.zeros([9, 9]))
+        self.assertEqualNPArray(f[:, :, features.RecentMoveFeature.planes - 1], np.zeros([9, 9]))

@@ -163,7 +163,7 @@ class Position(namedtuple('Position', 'board n komi caps groups ko recent player
     caps: a (int, int) tuple of captures; caps[0] is the person to play (B).
     groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
     ko: a Move
-    recent: a tuple of Moves, such that recent[-1] is the last move.
+    recent: a tuple of Moves, such that recent[-1] is the last move. (Would be nicely implemented as a linked list in lower level languages!)
     player1turn: whether player 1 is B.
     '''
     @staticmethod

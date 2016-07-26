@@ -1,8 +1,7 @@
 '''
-Features used by AlphaGo, in order of importance.
+Features used by AlphaGo, in approximate order of importance.
 Feature                 # Notes
 Stone colour            3 Player stones; oppo. stones; empty  
-Ones                    1 Constant plane of 1s
 Turns since last move   8 How many turns since a move played
 Liberties               8 Number of liberties
 Capture size            8 How many opponent stones would be captured
@@ -12,16 +11,15 @@ ladder capture          1 Whether a move is a successful ladder cap
 Ladder escape           1 Whether a move is a successful ladder escape
 Sensibleness            1 Whether a move is legal + doesn't fill own eye
 Zeros                   1 Constant plane of 0s
+Ones                    1 Constant plane of 1s
 
 All features with 8 planes are 1-hot encoded, with plane i marked with 1 
 only if the feature was equal to i. Any features >= 8 would be marked as 8.
 '''
 import itertools
-import re
 
 import numpy as np
 import go
-RAW_BOARD_EXTRACTOR_RE = re.compile(r'[^BW.]+')
 
 def make_onehot(feature, planes):
     onehot_features = np.zeros(feature.shape + (planes,), dtype=np.float32)
@@ -57,6 +55,20 @@ class StoneColorFeature(Feature):
         features[board == go.EMPTY, 2] = 1
         return features
 
+class RecentMoveFeature(Feature):
+    planes = 8
+
+    @staticmethod
+    def extract(position):
+        p = RecentMoveFeature.planes
+        onehot_features = np.zeros([go.N, go.N, p], dtype=np.float32)
+        for i, move in enumerate(position.recent[-1:-1 - p:-1]):
+            if move is not None:
+                onehot_features[move[0], move[1], i] = 1
+        return onehot_features
+
+
+
 class LibertyFeature(Feature):
     '''
     From the AlphaGo paper: 
@@ -73,4 +85,4 @@ class LibertyFeature(Feature):
                 features[s] = libs
         return make_onehot(features, LibertyFeature.planes)
 
-DEFAULT_FEATURES = FeatureExtractor([StoneColorFeature, LibertyFeature])
+DEFAULT_FEATURES = FeatureExtractor([StoneColorFeature, LibertyFeature, RecentMoveFeature])
