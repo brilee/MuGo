@@ -54,8 +54,12 @@ def preprocess(*data_sets, processed_dir="processed_data"):
     test_dataset.write(test_filename)
 
     for i, train_dataset in enumerate(training_datasets):
+        if i % 10 == 0:
+            print("Writing chunk %s" % i)
         train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
         train_dataset.write(train_filename)
+    print("%s chunks written" % i)
+
 
 def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None):
     test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))

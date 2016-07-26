@@ -37,16 +37,22 @@ def make_onehot(dense_labels, num_classes):
     return labels_one_hot
 
 def load_sgf_positions(*dataset_dirs):
+    all_sgf_files = []
     for dataset_dir in dataset_dirs:
         full_dir = os.path.join(os.getcwd(), dataset_dir)
         dataset_files = [os.path.join(full_dir, name) for name in os.listdir(full_dir)]
-        all_datafiles = [f for f in dataset_files if os.path.isfile(f) and f.endswith(".sgf")]
-        for file in all_datafiles:
-            with open(file) as f:
-                sgf = sgf_wrapper.SgfWrapper(f.read())
-                for position_w_context in sgf.get_main_branch():
-                    if position_w_context.is_usable():
-                        yield position_w_context
+        sgf_files = [f for f in dataset_files if os.path.isfile(f) and f.endswith(".sgf")]
+        all_sgf_files.extend(sgf_files)
+
+    print("%s sgfs found." % len(all_sgf_files), file=sys.stderr)
+    print("Estimated number of chunks: %s" % (len(all_sgf_files) * 200 // CHUNK_SIZE), file=sys.stderr)
+
+    for sgf_file in all_sgf_files:
+        with open(sgf_file) as f:
+            sgf = sgf_wrapper.SgfWrapper(f.read())
+            for position_w_context in sgf.get_main_branch():
+                if position_w_context.is_usable():
+                    yield position_w_context
 
 def bulk_extract(feature_extractor, positions):
     num_positions = len(positions)
