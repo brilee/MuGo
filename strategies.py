@@ -1,3 +1,4 @@
+import math
 import random
 import sys
 import time
@@ -63,6 +64,9 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
         move_probabilities = self.policy_network.run(position)
         return move_probabilities[0][1]
 
+# Exploration constant
+c_PUCT = 5
+
 class MCTSNode():
     '''
     A MCTSNode has two states: plain, and expanded.
@@ -74,7 +78,7 @@ class MCTSNode():
     '''
     @staticmethod
     def root_node(position, move_probabilities):
-        node = MCTSNode(None, None, 1.0)
+        node = MCTSNode(None, None, 0)
         node.position = position
         node.expand(move_probabilities)
         return node
@@ -85,7 +89,7 @@ class MCTSNode():
         self.prior = prior
         self.position = None # lazily computed upon expansion
         self.children = {} # map of moves to resulting MCTSNode
-        self.Q = self.parent.Q if self.parent is not None else 0.0 # average of all outcomes involving this node
+        self.Q = self.parent.Q if self.parent is not None else 0 # average of all outcomes involving this node
         self.U = prior # monte carlo exploration bonus
         self.N = 0 # number of times node was visited
 
@@ -94,6 +98,9 @@ class MCTSNode():
 
     @property
     def action_score(self):
+        # Note to self: after adding value network, must calculate 
+        # self.Q = weighted_average(avg(values), avg(rollouts)),
+        # as opposed to avg(map(weighted_average, values, rollouts))
         return self.Q + self.U
 
     def is_expanded(self):
@@ -110,15 +117,17 @@ class MCTSNode():
         self.children[None] = MCTSNode(self, None, 0)
 
     def backup_value(self, value):
-        # Update the average, without having to remember previous values
-        self.Q, self.U, self.N = (
-            self.Q + (value - self.Q) / (self.N + 1),
-            self.prior / (1 + self.N),
-            self.N + 1
+        self.N += 1
+        if self.parent is None:
+            # No point in updating Q / U values for root, since they are
+            # used to decide between children nodes.
+            return
+        self.Q, self.U = (
+            self.Q + (value - self.Q) / self.N,
+            c_PUCT * math.sqrt(self.parent.N) * self.prior / self.N,
         )
-        if self.parent is not None:
-            # must invert, because alternate layers have opposite desires
-            self.parent.backup_value(-value)
+        # must invert, because alternate layers have opposite desires
+        self.parent.backup_value(-value)
 
     def select_leaf(self):
         current = self
