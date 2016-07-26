@@ -21,6 +21,9 @@ import itertools
 import numpy as np
 import go
 
+# Resolution/truncation limit for one-hot features
+P = 8
+
 def make_onehot(feature, planes):
     onehot_features = np.zeros(feature.shape + (planes,), dtype=np.float32)
     for i in range(planes - 1):
@@ -43,23 +46,22 @@ def stone_color_feature(position):
     features[board == go.EMPTY, 2] = 1
     return features
 
-@planes(8)
+@planes(P)
 def recent_move_feature(position):
-    p = 8
-    onehot_features = np.zeros([go.N, go.N, p], dtype=np.float32)
-    for i, move in enumerate(reversed(position.recent[-p:])):
+    onehot_features = np.zeros([go.N, go.N, P], dtype=np.float32)
+    for i, move in enumerate(reversed(position.recent[-P:])):
         if move is not None:
             onehot_features[move[0], move[1], i] = 1
     return onehot_features
 
-@planes(8)
+@planes(P)
 def liberty_feature(position):
     features = np.zeros([go.N, go.N], dtype=np.float32)
     for g in itertools.chain(*position.groups):
         libs = len(g.liberties)
         for s in g.stones:
             features[s] = libs
-    return make_onehot(features, 8)
+    return make_onehot(features, P)
 
 
 class FeatureExtractor(object):
