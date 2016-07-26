@@ -78,6 +78,9 @@ def maybe_correct_next(pos, next_node):
         pos = pos.flip_playerturn()
     return pos
 
+class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
+    pass
+
 class SgfWrapper(object):
     '''
     Wrapper for sgf files, exposing contents as go.Position instances
@@ -92,10 +95,12 @@ class SgfWrapper(object):
         self.game = self.collection.children[0]
         props = self.game.root.properties
         assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
-        self.result = sgf_prop(props.get('RE'))
         self.komi = float(sgf_prop(props.get('KM')))
-        self.board_size = int(sgf_prop(props.get('SZ')))
-        go.set_board_size(self.board_size)
+        self.metadata = GameMetadata(
+            result=sgf_prop(props.get('RE')),
+            handicap=int(sgf_prop(props.get('HA', [0]))),
+            board_size=int(sgf_prop(props.get('SZ'))))
+        go.set_board_size(self.metadata.board_size)
 
     def get_main_branch(self):
         pos = Position.initial_state()
@@ -105,16 +110,22 @@ class SgfWrapper(object):
             pos = handle_node(pos, current_node)
             pos = maybe_correct_next(pos, current_node.next)
             next_move = get_next_move(current_node)
-            yield PositionWithContext(pos, next_move, self.result)
+            yield PositionWithContext(pos, next_move, self.metadata)
             current_node = current_node.next
 
-class PositionWithContext(namedtuple("SgfPosition", "position next_move result")):
+class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata")):
     '''
     Wrapper around go.Position.
     Stores a position, the move that came next, and the eventual result.
     '''
     def is_usable(self):
-        return self.position is not None and self.next_move is not None and self.result != "Void"
+        return all([
+            self.position is not None,
+            self.next_move is not None,
+            self.metadata.result != "Void",
+            self.metadata.board_size == 19,
+            self.metadata.handicap <= 4,
+        ])
 
     def __str__(self):
         return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
