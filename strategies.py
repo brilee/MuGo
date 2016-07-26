@@ -62,7 +62,10 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
 
     def suggest_move(self, position):
         move_probabilities = self.policy_network.run(position)
-        return move_probabilities[0][1]
+        for prob, move in move_probabilities:
+            if position.play_move(move) is not None:
+                return move
+        return None
 
 # Exploration constant
 c_PUCT = 5
