@@ -26,7 +26,7 @@ TEST_POSITION = go.Position(
 
 class TestFeatureExtraction(GoPositionTestCase):
     def test_stone_color_feature(self):
-        f = features.StoneColorFeature.extract(TEST_POSITION)
+        f = features.stone_color_feature(TEST_POSITION)
         self.assertEqual(f.shape, (9, 9, 3))
         # plane 0 is B
         self.assertEqual(f[0, 1, 0], 1)
@@ -39,8 +39,8 @@ class TestFeatureExtraction(GoPositionTestCase):
         self.assertEqual(f[0, 5, 1], 0)
 
     def test_liberty_feature(self):
-        f = features.LibertyFeature.extract(TEST_POSITION)
-        self.assertEqual(f.shape, (9, 9, features.LibertyFeature.planes))
+        f = features.liberty_feature(TEST_POSITION)
+        self.assertEqual(f.shape, (9, 9, features.liberty_feature.planes))
 
         self.assertEqual(f[0, 0, 0], 0)
         # the stone at 0, 1 has 3 liberties.
@@ -53,8 +53,8 @@ class TestFeatureExtraction(GoPositionTestCase):
         self.assertEqual(f[1, 0, 7], 1)
 
     def test_recent_moves_feature(self):
-        f = features.RecentMoveFeature.extract(TEST_POSITION)
-        self.assertEqual(f.shape, (9, 9, features.RecentMoveFeature.planes))
+        f = features.recent_move_feature(TEST_POSITION)
+        self.assertEqual(f.shape, (9, 9, features.recent_move_feature.planes))
         # most recent move at (1, 0)
         self.assertEqual(f[1, 0, 0], 1)
         self.assertEqual(f[1, 0, 3], 0)
@@ -65,4 +65,4 @@ class TestFeatureExtraction(GoPositionTestCase):
         self.assertEqual(f[0, 1, 2], 1)
         # no more older moves
         self.assertEqualNPArray(f[:, :, 3], np.zeros([9, 9]))
-        self.assertEqualNPArray(f[:, :, features.RecentMoveFeature.planes - 1], np.zeros([9, 9]))
+        self.assertEqualNPArray(f[:, :, features.recent_move_feature.planes - 1], np.zeros([9, 9]))
