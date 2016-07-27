@@ -104,6 +104,9 @@ class PolicyNetwork(object):
         else:
             self.saver.restore(self.session, save_file)
 
+    def get_global_step(self):
+        return self.self.session.run(self.global_step)
+
     def save_variables(self, save_file):
         self.saver.save(self.session, save_file)
 
@@ -111,7 +114,7 @@ class PolicyNetwork(object):
         num_minibatches = training_data.data_size // batch_size
         for i in range(num_minibatches):
             batch_x, batch_y = training_data.get_batch(batch_size)
-            global_step = self.session.run(self.global_step)
+            global_step = self.get_global_step()
             if global_step % 100 == 0:
                 accuracy_summaries, activation_summaries, train_accuracy = self.session.run(
                     [self.accuracy_summaries, self.activation_summaries, self.accuracy],

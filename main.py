@@ -70,6 +70,7 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
     n.initialize_variables(read_file)
     if logdir is not None:
         n.initialize_logging(logdir)
+    last_save_checkpoint = 0
     for i in range(epochs):
         random.shuffle(train_chunk_files)
         for file in train_chunk_files:
@@ -77,6 +78,11 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
             train_dataset = DataSet.read(file)
             n.train(train_dataset)
             n.check_accuracy(test_dataset)
+            if save_file is not None and n.get_global_step() > last_save_checkpoint + 1000:
+                print("Saving checkpoint to %s" % save_file, file=sys.stderr)
+                last_save_checkpoint = n.get_global_step()
+                n.save_variables(save_file)
+
     if save_file is not None:
         n.save_variables(save_file)
         print("Finished training. New model saved to %s" % save_file, file=sys.stderr)
