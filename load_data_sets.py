@@ -1,3 +1,4 @@
+import itertools
 import gzip
 import numpy as np
 import os
@@ -36,30 +37,37 @@ def make_onehot(dense_labels, num_classes):
     labels_one_hot.flat[index_offset + dense_labels.ravel()] = 1
     return labels_one_hot
 
-def load_sgf_positions(*dataset_dirs):
-    all_sgf_files = []
+def find_sgf_files(*dataset_dirs):
     for dataset_dir in dataset_dirs:
         full_dir = os.path.join(os.getcwd(), dataset_dir)
         dataset_files = [os.path.join(full_dir, name) for name in os.listdir(full_dir)]
-        sgf_files = [f for f in dataset_files if os.path.isfile(f) and f.endswith(".sgf")]
-        all_sgf_files.extend(sgf_files)
+        for f in dataset_files:
+            if os.path.isfile(f) and f.endswith(".sgf"):
+                yield f
 
-    print("%s sgfs found." % len(all_sgf_files), file=sys.stderr)
-    print("Estimated number of chunks: %s" % (len(all_sgf_files) * 200 // CHUNK_SIZE), file=sys.stderr)
+def get_positions_from_sgf(file):
+    with open(file) as f:
+        sgf = sgf_wrapper.SgfWrapper(f.read())
+        for position_w_context in sgf.get_main_branch():
+            if position_w_context.is_usable():
+                yield position_w_context
 
-    for sgf_file in all_sgf_files:
-        with open(sgf_file) as f:
-            sgf = sgf_wrapper.SgfWrapper(f.read())
-            for position_w_context in sgf.get_main_branch():
-                if position_w_context.is_usable():
-                    yield position_w_context
-
-def bulk_extract(feature_extractor, positions):
+def extract_features(positions):
     num_positions = len(positions)
-    output = np.zeros([num_positions, go.N, go.N, feature_extractor.planes], dtype=np.float32)
+    output = np.zeros([num_positions, go.N, go.N, DEFAULT_FEATURES.planes], dtype=np.float32)
     for i, pos in enumerate(positions):
-        output[i] = feature_extractor.extract(pos)
+        output[i] = DEFAULT_FEATURES.extract(pos)
     return output
+
+def split_test_training(data_chunks):
+    first_chunk = next(data_chunks)
+    if len(first_chunk) != CHUNK_SIZE:
+        test_size = len(first_chunk) // 2
+        test_chunk, training_chunks = first_chunk[:test_size], [first_chunk[test_size:]]
+    else:
+        test_chunk, training_chunks = first_chunk, data_chunks
+    return test_chunk, training_chunks
+
 
 class DataSet(object):
     def __init__(self, pos_features, next_moves, results, is_test=False):
@@ -90,7 +98,7 @@ class DataSet(object):
     @staticmethod
     def from_positions_w_context(positions_w_context, is_test=False):
         positions, next_moves, results = zip(*positions_w_context)
-        extracted_features = bulk_extract(DEFAULT_FEATURES, positions)
+        extracted_features = extract_features(positions)
         encoded_moves = make_onehot(map(utils.flatten_coords, next_moves), go.N ** 2)
         return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
 
@@ -114,20 +122,25 @@ class DataSet(object):
             next_moves = np.fromstring(next_move_bytes, dtype=np.int16).reshape(data_size, board_size * board_size)
         return DataSet(pos_features, next_moves, [], is_test=is_test)
 
-def process_raw_data(*dataset_dirs):
-    print("Extracting positions from sgfs...", file=sys.stderr)
-    positions_w_context = load_sgf_positions(*dataset_dirs)
-    print("Partitioning positions into test, training datasets")
+def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
+    sgf_files = list(find_sgf_files(*dataset_dirs))
+    print("%s sgfs found." % len(sgf_files), file=sys.stderr)
+    print("Estimated number of chunks: %s" % (len(sgf_files) * 200 // CHUNK_SIZE), file=sys.stderr)
+    positions_w_context = itertools.chain(*map(get_positions_from_sgf, sgf_files))
+
     data_chunks = iter_chunks(CHUNK_SIZE, positions_w_context)
-    first_chunk = next(data_chunks)
-    if len(first_chunk) != CHUNK_SIZE:
-        test_size = len(first_chunk) // 2
-        test_chunk, training_chunks = first_chunk[:test_size], [first_chunk[test_size:]]
-        print("Allocating %s positions as test; %s positions as training" % (test_size, len(first_chunk) - test_size), file=sys.stderr)
-    else:
-        test_chunk, training_chunks = first_chunk, data_chunks
-        print("Allocating %s positions as test; remainder as training" % CHUNK_SIZE, file=sys.stderr)
-    print("Processing positions to extract features", file=sys.stderr)
+    test_chunk, training_chunks = split_test_training(data_chunks)
+    print("Allocating %s positions as test; remainder as training" % len(test_chunk), file=sys.stderr)
+
+    print("Writing test chunk")
     test_dataset = DataSet.from_positions_w_context(test_chunk, is_test=True)
+    test_filename = os.path.join(processed_dir, "test.chunk.gz")
+    test_dataset.write(test_filename)
+
     training_datasets = map(DataSet.from_positions_w_context, training_chunks)
-    return test_dataset, training_datasets
+    for i, train_dataset in enumerate(training_datasets):
+        if i % 10 == 0:
+            print("Writing training chunk %s" % i)
+        train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
+        train_dataset.write(train_filename)
+    print("%s chunks written" % i)
