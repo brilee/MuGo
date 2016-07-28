@@ -58,11 +58,20 @@ To invoke the MCTS-integrated version of the policy network, use
 python main.py gtp mcts --read-file=/tmp/savedmodel
 ```
 
-One way to play via GTP is to use gogui-display (which implements a UI that speaks GTP.) You can download the gogui set of tools at [http://gogui.sourceforge.net/](http://gogui.sourceforge.net/)
+One way to play via GTP is to use gogui-display (which implements a UI that speaks GTP.) You can download the gogui set of tools at [http://gogui.sourceforge.net/](http://gogui.sourceforge.net/). See also [documentation on interesting ways to use GTP](http://gogui.sourceforge.net/doc/reference-twogtp.html).
 ```
 gogui-twogtp -black 'python main.py gtp policy --read-file=/tmp/savedmodel' -white 'gogui-display' -size 19 -komi 7.5 -verbose -auto
 ```
 
+Another way to play via GTP is to play against GnuGo, while spectating the games
+```
+BLACK="gnugo --mode gtp"
+WHITE="python main.py gtp policy --read-file=/tmp/savedmodel"
+TWOGTP="gogui-twogtp -black \"$BLACK\" -white \"$WHITE\" -games 10 \
+  -size 19 -alternate -sgffile gnugo"
+gogui -size 19 -program "$TWOGTP" -computer-both -auto
+```
+
 Another way to play via GTP is to connect to CGOS, the [Computer Go Online Server](http://yss-aya.com/cgos/). The CGOS server hosted by boardspace.net is actually abandoned; you'll want to connect to the CGOS server at yss-aya.com. 
 
-After configuring your cgos.config file, you can connect to CGOS with `cgosGtp -c cgos.config` and spectate your own game with `cgosView yss-aya.com 6819`s
+After configuring your cgos.config file, you can connect to CGOS with `cgosGtp -c cgos.config` and spectate your own game with `cgosView yss-aya.com 6819`
