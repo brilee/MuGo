@@ -81,4 +81,4 @@ class FeatureExtractor(object):
     def extract(self, position):
         return np.concatenate([feature(position) for feature in self.features], axis=2)
 
-DEFAULT_FEATURES = FeatureExtractor([stone_color_feature, liberty_feature, recent_move_feature])
+DEFAULT_FEATURES = FeatureExtractor([stone_color_feature, liberty_feature, recent_move_feature, would_capture_feature])
