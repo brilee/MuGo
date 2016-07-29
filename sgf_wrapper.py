@@ -123,7 +123,6 @@ class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata
             self.position is not None,
             self.next_move is not None,
             self.metadata.result != "Void",
-            self.metadata.board_size == 19,
             self.metadata.handicap <= 4,
         ])
 

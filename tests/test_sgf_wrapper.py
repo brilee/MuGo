@@ -11,8 +11,8 @@ CHINESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Chinese]SZ[9]HA
 class TestSgfWrapper(GoPositionTestCase):
     def test_sgf_props(self):
         sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
-        self.assertEqual(sgf.result, 'B+39.50')
-        self.assertEqual(sgf.board_size, 9)
+        self.assertEqual(sgf.metadata.result, 'B+39.50')
+        self.assertEqual(sgf.metadata.board_size, 9)
         self.assertEqual(sgf.komi, 5.5)
 
     def test_japanese_handicap_handling(self):

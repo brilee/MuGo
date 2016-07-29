@@ -11,7 +11,9 @@ class TestDataSets(GoPositionTestCase):
             os.remove(TEMP_FILE_NAME)
 
     def test_dataset_serialization(self):
-        positions_w_context = list(load_data_sets.load_sgf_positions(TEST_DIR))
+        sgf_files = list(load_data_sets.find_sgf_files(TEST_DIR))
+        positions_w_context = list(load_data_sets.get_positions_from_sgf(sgf_files[0]))
+
         dataset = load_data_sets.DataSet.from_positions_w_context(positions_w_context)
         dataset.write(TEMP_FILE_NAME)
         recovered = load_data_sets.DataSet.read(TEMP_FILE_NAME)
