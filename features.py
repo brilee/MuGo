@@ -63,6 +63,15 @@ def liberty_feature(position):
             features[s] = libs
     return make_onehot(features, P)
 
+@planes(P)
+def would_capture_feature(position):
+    features = np.zeros([go.N, go.N], dtype=np.float32)
+    for g in position.groups[1]:
+        if len(g.liberties) == 1:
+            last_lib = list(g.liberties)[0]
+            # += because the same spot may capture more than 1 group.
+            features[last_lib] += len(g.stones)
+    return make_onehot(features, P)
 
 class FeatureExtractor(object):
     def __init__(self, features):
