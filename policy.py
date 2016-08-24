@@ -82,12 +82,17 @@ class PolicyNetwork(object):
             for weight_var in itertools.chain(
                 [W_conv_init],
                 W_conv_intermediate,
-                [W_conv_final])])
-        activation_summaries = tf.merge_summary([tf.histogram_summary(act_var.name, act_var)
-            for act_var in itertools.chain([h_conv_init], h_conv_intermediate)])
+                [W_conv_final])],
+            name="weight_summaries"
+        )
+        activation_summaries = tf.merge_summary([
+            tf.histogram_summary(act_var.name, act_var)
+            for act_var in itertools.chain([h_conv_init], h_conv_intermediate)],
+            name="activation_summaries"
+        )
         _accuracy = tf.scalar_summary("accuracy", accuracy)
         _cost = tf.scalar_summary("log_likelihood_cost", log_likelihood_cost)
-        accuracy_summaries = tf.merge_summary([_accuracy, _cost])
+        accuracy_summaries = tf.merge_summary([_accuracy, _cost], name="accuracy_summaries")
 
         # save everything to self.
         for name, thing in locals().items():
