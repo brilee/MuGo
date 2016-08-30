@@ -79,15 +79,12 @@ class PolicyNetwork(object):
 
         weight_summaries = tf.merge_summary([
             tf.histogram_summary(weight_var.name, weight_var)
-            for weight_var in itertools.chain(
-                [W_conv_init],
-                W_conv_intermediate,
-                [W_conv_final])],
+            for weight_var in [W_conv_init] +  W_conv_intermediate + [W_conv_final]],
             name="weight_summaries"
         )
         activation_summaries = tf.merge_summary([
             tf.histogram_summary(act_var.name, act_var)
-            for act_var in itertools.chain([h_conv_init], h_conv_intermediate)],
+            for act_var in [h_conv_init] + h_conv_intermediate],
             name="activation_summaries"
         )
         _accuracy = tf.scalar_summary("accuracy", accuracy)
