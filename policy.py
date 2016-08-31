@@ -20,7 +20,9 @@ kernel size 1 x 1 with stride 1, and hidden layer 14 is a fully connected
 linear layer with 256 rectifier units. The output layer is a fully connected
 linear layer with a single tanh unit.
 '''
-import itertools
+import functools
+import math
+import operator
 import os
 import tensorflow as tf
 
@@ -45,8 +47,16 @@ class PolicyNetwork(object):
         y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
 
         #convenience functions for initializing weights and biases
+        # http://neuralnetworksanddeeplearning.com/chap3.html#weight_initialization
+        def _product(numbers):
+            return functools.reduce(operator.mul, numbers)
+
         def weight_variable(shape, name):
-            return tf.Variable(tf.truncated_normal(shape, stddev=0.1), name=name)
+            # If shape is [5, 5, 20, 32], then each of the 32 output planes 
+            # has 5 * 5 * 20 inputs.
+            number_inputs_added = _product(shape[:-1])
+            stddev = 1 / math.sqrt(number_inputs_added)
+            return tf.Variable(tf.truncated_normal(shape, stddev=stddev), name=name)
 
         def conv2d(x, W):
             return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding="SAME")
