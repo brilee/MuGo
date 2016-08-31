@@ -51,32 +51,32 @@ class PolicyNetwork(object):
         def _product(numbers):
             return functools.reduce(operator.mul, numbers)
 
-        def weight_variable(shape, name):
-            # If shape is [5, 5, 20, 32], then each of the 32 output planes 
+        def _weight_variable(shape, name):
+            # If shape is [5, 5, 20, 32], then each of the 32 output planes
             # has 5 * 5 * 20 inputs.
             number_inputs_added = _product(shape[:-1])
             stddev = 1 / math.sqrt(number_inputs_added)
             return tf.Variable(tf.truncated_normal(shape, stddev=stddev), name=name)
 
-        def conv2d(x, W):
+        def _conv2d(x, W):
             return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding="SAME")
 
         # initial conv layer is 5x5
-        W_conv_init = weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init")
-        h_conv_init = tf.nn.relu(conv2d(x, W_conv_init), name="h_conv_init")
+        W_conv_init = _weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init")
+        h_conv_init = tf.nn.relu(_conv2d(x, W_conv_init), name="h_conv_init")
 
         # followed by a series of 3x3 conv layers
         W_conv_intermediate = []
         h_conv_intermediate = []
         _current_h_conv = h_conv_init
         for i in range(self.num_int_conv_layers):
-            W_conv_intermediate.append(weight_variable([3, 3, self.k, self.k], name="W_conv_inter" + str(i)))
-            h_conv_intermediate.append(tf.nn.relu(conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv_inter" + str(i)))
+            W_conv_intermediate.append(_weight_variable([3, 3, self.k, self.k], name="W_conv_inter" + str(i)))
+            h_conv_intermediate.append(tf.nn.relu(_conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv_inter" + str(i)))
             _current_h_conv = h_conv_intermediate[-1]
 
-        W_conv_final = weight_variable([1, 1, self.k, 1], name="W_conv_final")
+        W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
-        h_conv_final = conv2d(h_conv_intermediate[-1], W_conv_final)
+        h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
         output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
