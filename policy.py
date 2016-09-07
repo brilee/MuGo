@@ -37,9 +37,10 @@ class PolicyNetwork(object):
         self.num_int_conv_layers = num_int_conv_layers
         self.test_summary_writer = None
         self.training_summary_writer = None
+        self.test_stats = StatisticsCollector()
+        self.training_stats = StatisticsCollector()
         self.session = tf.Session()
         self.set_up_network()
-        self.set_up_summaries()
 
     def set_up_network(self):
         # a global_step variable allows epoch counts to persist through multiple training sessions
@@ -103,31 +104,9 @@ class PolicyNetwork(object):
             if not name.startswith('_'):
                 setattr(self, name, thing)
 
-    def set_up_summaries(self):
-        # See summarize() for why things are set up this way
-        accuracy_summary = tf.placeholder(tf.float32, [])
-        cost_summary = tf.placeholder(tf.float32, [])
-        _accuracy = tf.scalar_summary("accuracy", accuracy_summary)
-        _cost = tf.scalar_summary("log_likelihood_cost", cost_summary)
-        accuracy_summaries = tf.merge_summary([_accuracy, _cost], name="accuracy_summaries")
-        # save everything to self.
-        for name, thing in locals().items():
-            if not name.startswith('_'):
-                setattr(self, name, thing)
-
     def initialize_logging(self, tensorboard_logdir):
         self.test_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
         self.training_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
-
-    def summarize(self, accuracy, cost):
-        # Accuracy and cost cannot be calculated with the full test dataset
-        # in one pass, so they must be computed in batches. Unfortunately,
-        # the built-in TF summary nodes cannot be told to aggregate multiple
-        # executions. Therefore, we aggregate the accuracy/cost ourselves at
-        # the python level, and then shove it through the accuracy/cost summary
-        # nodes to generate the appropriate summary protobufs for writing.
-        return self.session.run(self.accuracy_summaries, 
-            feed_dict={self.accuracy_summary: accuracy, self.cost_summary: cost})
 
     def initialize_variables(self, save_file=None):
         if save_file is None:
@@ -143,25 +122,20 @@ class PolicyNetwork(object):
 
     def train(self, training_data, batch_size=32):
         num_minibatches = training_data.data_size // batch_size
-        aggregate_accuracy, aggregate_cost = 0, 0
         for i in range(num_minibatches):
             batch_x, batch_y = training_data.get_batch(batch_size)
             _, accuracy, cost = self.session.run(
                 [self.train_step, self.accuracy, self.log_likelihood_cost],
                 feed_dict={self.x: batch_x, self.y: batch_y})
-            aggregate_accuracy += accuracy
-            aggregate_cost += cost
+            self.training_stats.report(accuracy, cost)
 
-        avg_accuracy = aggregate_accuracy / num_minibatches
-        avg_cost = aggregate_cost / num_minibatches
+        avg_accuracy, avg_cost, accuracy_summaries = self.training_stats.collect()
         global_step = self.get_global_step()
-        aggregate_accuracy, aggregate_cost = 0, 0
         print("Step %d training data accuracy: %g; cost: %g" % (global_step, avg_accuracy, avg_cost))
         if self.training_summary_writer is not None:
             activation_summaries = self.session.run(
                 self.activation_summaries,
                 feed_dict={self.x: batch_x, self.y: batch_y})
-            accuracy_summaries = self.summarize(avg_accuracy, avg_cost)
             self.training_summary_writer.add_summary(activation_summaries, global_step)
             self.training_summary_writer.add_summary(accuracy_summaries, global_step)
 
@@ -177,18 +151,14 @@ class PolicyNetwork(object):
         num_minibatches = test_data.data_size // batch_size
         weight_summaries = self.session.run(self.weight_summaries)
 
-        aggregate_accuracy, aggregate_cost = 0, 0
         for i in range(num_minibatches):
             batch_x, batch_y = test_data.get_batch(batch_size)
             accuracy, cost = self.session.run(
                 [self.accuracy, self.log_likelihood_cost],
                 feed_dict={self.x: batch_x, self.y: batch_y})
-            aggregate_accuracy += accuracy
-            aggregate_cost += cost
+            self.test_stats.report(accuracy, cost)
 
-        avg_accuracy = aggregate_accuracy / num_minibatches
-        avg_cost = aggregate_cost / num_minibatches
-        accuracy_summaries = self.summarize(avg_accuracy, avg_cost)
+        avg_accuracy, avg_cost, accuracy_summaries = self.test_stats.collect()
         global_step = self.get_global_step()
         print("Step %s test data accuracy: %g; cost: %g" % (global_step, avg_accuracy, avg_cost))
 
@@ -196,3 +166,36 @@ class PolicyNetwork(object):
             self.test_summary_writer.add_summary(weight_summaries, global_step)
             self.test_summary_writer.add_summary(accuracy_summaries, global_step)
 
+class StatisticsCollector(object):
+    '''
+    Accuracy and cost cannot be calculated with the full test dataset
+    in one pass, so they must be computed in batches. Unfortunately,
+    the built-in TF summary nodes cannot be told to aggregate multiple
+    executions. Therefore, we aggregate the accuracy/cost ourselves at
+    the python level, and then shove it through the accuracy/cost summary
+    nodes to generate the appropriate summary protobufs for writing.
+    '''
+    with tf.device("/cpu:0"):
+        accuracy = tf.placeholder(tf.float32, [])
+        cost = tf.placeholder(tf.float32, [])
+        accuracy_summary = tf.scalar_summary("accuracy", accuracy)
+        cost_summary = tf.scalar_summary("log_likelihood_cost", cost)
+        accuracy_summaries = tf.merge_summary([accuracy_summary, cost_summary], name="accuracy_summaries")
+    session = tf.Session()
+
+    def __init__(self):
+        self.accuracies = []
+        self.costs = []
+
+    def report(self, accuracy, cost):
+        self.accuracies.append(accuracy)
+        self.costs.append(cost)
+
+    def collect(self):
+        avg_acc = sum(self.accuracies) / len(self.accuracies)
+        avg_cost = sum(self.costs) / len(self.costs)
+        self.accuracies = []
+        self.costs = []
+        summary = self.session.run(self.accuracy_summaries,
+            feed_dict={self.accuracy:avg_acc, self.cost: avg_cost})
+        return avg_acc, avg_cost, summary
