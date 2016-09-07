@@ -89,12 +89,12 @@ class PolicyNetwork(object):
 
         weight_summaries = tf.merge_summary([
             tf.histogram_summary(weight_var.name, weight_var)
-            for weight_var in [W_conv_init] +  W_conv_intermediate + [W_conv_final]],
+            for weight_var in [W_conv_init] +  W_conv_intermediate + [W_conv_final, b_conv_final]],
             name="weight_summaries"
         )
         activation_summaries = tf.merge_summary([
             tf.histogram_summary(act_var.name, act_var)
-            for act_var in [h_conv_init] + h_conv_intermediate],
+            for act_var in [h_conv_init] + h_conv_intermediate, [h_conv_final]],
             name="activation_summaries"
         )
         _accuracy = tf.scalar_summary("accuracy", accuracy)
@@ -117,7 +117,7 @@ class PolicyNetwork(object):
             self.saver.restore(self.session, save_file)
 
     def get_global_step(self):
-        return self.self.session.run(self.global_step)
+        return self.session.run(self.global_step)
 
     def save_variables(self, save_file):
         self.saver.save(self.session, save_file)
@@ -149,7 +149,7 @@ class PolicyNetwork(object):
         accuracy_summaries, test_accuracy = self.session.run(
             [self.accuracy_summaries, self.accuracy],
             feed_dict={self.x: test_data.pos_features, self.y: test_data.next_moves})
-        global_step = self.session.run(self.global_step)
+        global_step = self.get_global_step()
         if self.test_summary_writer is not None:
             self.test_summary_writer.add_summary(weight_summaries, global_step)
             self.test_summary_writer.add_summary(accuracy_summaries, global_step)
