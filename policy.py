@@ -74,9 +74,10 @@ class PolicyNetwork(object):
         h_conv_intermediate = []
         _current_h_conv = h_conv_init
         for i in range(self.num_int_conv_layers):
-            W_conv_intermediate.append(_weight_variable([3, 3, self.k, self.k], name="W_conv_inter" + str(i)))
-            h_conv_intermediate.append(tf.nn.relu(_conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv_inter" + str(i)))
-            _current_h_conv = h_conv_intermediate[-1]
+            with tf.name_scope("layer"+str(i)):
+                W_conv_intermediate.append(_weight_variable([3, 3, self.k, self.k], name="W_conv"))
+                h_conv_intermediate.append(tf.nn.relu(_conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv"))
+                _current_h_conv = h_conv_intermediate[-1]
 
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
