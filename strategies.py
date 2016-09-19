@@ -61,6 +61,9 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
         self.policy_network = policy_network
 
     def suggest_move(self, position):
+        if position.recent and position.n > 100 and position.recent[-1] == None:
+            # Pass if the opponent passes
+            return None
         move_probabilities = self.policy_network.run(position)
         for prob, move in move_probabilities:
             if position.play_move(move) is not None:
