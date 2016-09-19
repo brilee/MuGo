@@ -70,12 +70,31 @@ class PolicyNetwork(object):
         # followed by a series of 3x3 conv layers
         W_conv_intermediate = []
         h_conv_intermediate = []
+        output_intermediate = []
+        train_ops_intermediate = []
+        accuracy_intermediate = []
+        cost_intermediate = []
         _current_h_conv = h_conv_init
         for i in range(self.num_int_conv_layers):
             with tf.name_scope("layer"+str(i)):
                 W_conv_intermediate.append(_weight_variable([3, 3, self.k, self.k], name="W_conv"))
                 h_conv_intermediate.append(tf.nn.relu(_conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv"))
                 _current_h_conv = h_conv_intermediate[-1]
+
+                W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
+                b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
+                h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
+                output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
+                output_intermediate.append(output)
+
+                log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
+                cost_intermediate.append(log_likelihood_cost)
+
+                train_step = tf.train.GradientDescentOptimizer(5e-2).minimize(log_likelihood_cost, global_step=global_step)
+                train_ops_intermediate.append(train_step)
+                was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
+                accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
+                accuracy_intermediate.append(accuracy)
 
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
@@ -121,12 +140,21 @@ class PolicyNetwork(object):
     def save_variables(self, save_file):
         self.saver.save(self.session, save_file)
 
-    def train(self, training_data, batch_size=32):
+    def train(self, training_data, layer_to_train=None, batch_size=32):
+        if layer_to_train is None:
+            train_node = self.train_step
+            accuracy_node = self.accuracy
+            cost_node = self.log_likelihood_cost
+        else:
+            train_node = self.train_ops_intermediate[layer_to_train]
+            accuracy_node = self.accuracy_intermediate[layer_to_train]
+            cost_node = self.cost_intermediate[layer_to_train]
+
         num_minibatches = training_data.data_size // batch_size
         for i in range(num_minibatches):
             batch_x, batch_y = training_data.get_batch(batch_size)
             _, accuracy, cost = self.session.run(
-                [self.train_step, self.accuracy, self.log_likelihood_cost],
+                [train_node, accuracy_node, cost_node],
                 feed_dict={self.x: batch_x, self.y: batch_y})
             self.training_stats.report(accuracy, cost)
 

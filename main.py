@@ -55,7 +55,10 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
     train_chunk_files = [os.path.join(processed_dir, fname) 
         for fname in os.listdir(processed_dir)
         if TRAINING_CHUNK_RE.match(fname)]
-    n = PolicyNetwork(DEFAULT_FEATURES.planes)
+
+    num_int_conv_layers = 3
+    steps_per_layer = 100
+    n = PolicyNetwork(DEFAULT_FEATURES.planes, num_int_conv_layers=num_int_conv_layers)
     n.initialize_variables(read_file)
     if logdir is not None:
         n.initialize_logging(logdir)
@@ -65,7 +68,13 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
         for file in train_chunk_files:
             print("Using %s" % file)
             train_dataset = DataSet.read(file)
-            n.train(train_dataset)
+
+            current_step = n.get_global_step()
+            layer_to_train = current_step // steps_per_layer
+            if layer_to_train >= num_int_conv_layers:
+                layer_to_train = None
+            print("Training %s layer" % layer_to_train)
+            n.train(train_dataset, layer_to_train=layer_to_train)
             n.check_accuracy(test_dataset)
             if save_file is not None and n.get_global_step() > last_save_checkpoint + 1000:
                 print("Saving checkpoint to %s" % save_file, file=sys.stderr)
