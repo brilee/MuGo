@@ -15,18 +15,23 @@ CHUNK_SIZE = 4096
 CHUNK_HEADER_FORMAT = "iii?"
 CHUNK_HEADER_SIZE = struct.calcsize(CHUNK_HEADER_FORMAT)
 
-def iter_chunks(chunk_size, iterable):
-    iterator = iter(iterable)
+def take_n(n, iterator):
+    result = []
+    try:
+        for i in range(n):
+            result.append(next(iterator))
+    except StopIteration:
+        pass
+    finally:
+        return result
+
+def iter_chunks(chunk_size, iterator):
     while True:
-        current_chunk = []
-        try:
-            for i in range(chunk_size):
-                current_chunk.append(next(iterator))
-            yield current_chunk
-        except StopIteration:
-            # return the final partial chunk. 
-            # If len(iterable) % chunk_size == 0, don't return an empty chunk.
-            if current_chunk: yield current_chunk
+        next_chunk = take_n(chunk_size, iterator)
+        # If len(iterable) % chunk_size == 0, don't return an empty chunk.
+        if next_chunk:
+            yield next_chunk
+        else:
             break
 
 def make_onehot(dense_labels, num_classes):
@@ -59,14 +64,16 @@ def extract_features(positions):
         output[i] = DEFAULT_FEATURES.extract(pos)
     return output
 
-def split_test_training(data_chunks):
-    first_chunk = next(data_chunks)
-    if len(first_chunk) != CHUNK_SIZE:
-        test_size = len(first_chunk) // 2
-        test_chunk, training_chunks = first_chunk[:test_size], [first_chunk[test_size:]]
+def split_test_training(positions_w_context, est_num_positions):
+    desired_test_size = 10**5
+    if est_num_positions < 2 * desired_test_size:
+        positions_w_context = list(positions_w_context)
+        test_size = len(positions_w_context) // 3
+        return positions_w_context[:test_size], [positions_w_context[test_size:]]
     else:
-        test_chunk, training_chunks = first_chunk, data_chunks
-    return test_chunk, training_chunks
+        test_chunk = take_n(desired_test_size, positions_w_context)
+        training_chunks = iter_chunks(CHUNK_SIZE, positions_w_context)
+        return test_chunk, training_chunks
 
 
 class DataSet(object):
@@ -125,11 +132,11 @@ class DataSet(object):
 def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
     sgf_files = list(find_sgf_files(*dataset_dirs))
     print("%s sgfs found." % len(sgf_files), file=sys.stderr)
-    print("Estimated number of chunks: %s" % (len(sgf_files) * 200 // CHUNK_SIZE), file=sys.stderr)
+    est_num_positions = len(sgf_files) * 200 # about 200 moves per game
+    print("Estimated number of chunks: %s" % (est_num_positions // CHUNK_SIZE), file=sys.stderr)
     positions_w_context = itertools.chain(*map(get_positions_from_sgf, sgf_files))
 
-    data_chunks = iter_chunks(CHUNK_SIZE, positions_w_context)
-    test_chunk, training_chunks = split_test_training(data_chunks)
+    test_chunk, training_chunks = split_test_training(positions_w_context, est_num_positions)
     print("Allocating %s positions as test; remainder as training" % len(test_chunk), file=sys.stderr)
 
     print("Writing test chunk")
@@ -143,4 +150,4 @@ def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
             print("Writing training chunk %s" % i)
         train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
         train_dataset.write(train_filename)
-    print("%s chunks written" % i)
+    print("%s chunks written" % (i+1))
