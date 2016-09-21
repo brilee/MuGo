@@ -30,6 +30,8 @@ import features
 import go
 import utils
 
+EPSILON = 1e-35
+
 class PolicyNetwork(object):
     def __init__(self, num_input_planes, k=32, num_int_conv_layers=3):
         self.num_input_planes = num_input_planes
@@ -79,7 +81,9 @@ class PolicyNetwork(object):
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
         h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
-        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
+
+        # Add epsilon to avoid taking the log of 0 in following step
+        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final) + tf.constant(EPSILON)
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
 
