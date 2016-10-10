@@ -1,5 +1,6 @@
 import numpy as np
 import unittest
+from go import Position, LibertyTracker, WHITE, BLACK, EMPTY
 import go
 from utils import parse_kgs_coords as pc, parse_sgf_coords
 from test_utils import GoPositionTestCase, load_board
@@ -10,7 +11,7 @@ EMPTY_ROW = '.' * go.N + '\n'
 TEST_BOARD = load_board('''
 .X.....OO
 X........
-''' + EMPTY_ROW * 7, player1turn=True)
+''' + EMPTY_ROW * 7)
 
 def pc_set(string):
     return set(map(pc, string.split()))
@@ -18,7 +19,7 @@ def pc_set(string):
 class TestGoBoard(GoPositionTestCase):
     def test_load_board(self):
         self.assertEqualNPArray(go.EMPTY_BOARD, np.zeros([go.N, go.N]))
-        self.assertEqualNPArray(go.EMPTY_BOARD, load_board('. \n' * go.N ** 2, player1turn=True))
+        self.assertEqualNPArray(go.EMPTY_BOARD, load_board('. \n' * go.N ** 2))
 
     def test_parsing(self):
         self.assertEqual(pc('A9'), (0, 0))
@@ -36,56 +37,10 @@ class TestGoBoard(GoPositionTestCase):
         side_neighbors = [go.EMPTY_BOARD[c] for c in go.NEIGHBORS[side]]
         self.assertEqual(len(side_neighbors), 3)
 
-class TestGroupHandling(GoPositionTestCase):
-    def test_flood_fill(self):
-        expected_board = load_board('''
-            .X.....##
-            X........
-        ''' + EMPTY_ROW * 7, player1turn=True)
-        test_board_copy = np.copy(TEST_BOARD)
-        stones = go.flood_fill(test_board_copy, pc('H9'))
-        self.assertEqualNPArray(expected_board, test_board_copy)
-        self.assertEqual(pc_set('H9 J9'), stones)
-
-    def test_find_liberties(self):
-        stones = pc_set('H9 J9')
-        expected_liberties = pc_set('G9 H8 J8')
-        actual_liberties = go.find_liberties(TEST_BOARD, stones)
-        self.assertEqual(expected_liberties, actual_liberties)
-
-    def test_deduce_groups(self):
-        expected_groups = ([
-            go.Group(
-                stones=pc_set('B9'),
-                liberties=pc_set('A9 C9 B8')
-            ),
-            go.Group(
-                stones=pc_set('A8'),
-                liberties=pc_set('A9 A7 B8')
-            ),
-            ], [
-            go.Group(
-                stones=pc_set('H9 J9'),
-                liberties=pc_set('G9 H8 J8')
-            )
-            ]
-        )
-        actual_groups = go.deduce_groups(TEST_BOARD)
-        self.assertEqual(expected_groups, actual_groups)
-
-    def test_update_groups(self):
-        existing_X_groups, existing_O_groups = go.deduce_groups(TEST_BOARD)
-        updated_board = go.place_stone(TEST_BOARD, go.BLACK, pc('A9'))
-        updated_X_groups, updated_O_groups = go.update_groups(updated_board, existing_X_groups, existing_O_groups, pc('A9'))
-        self.assertEqual(updated_X_groups, [go.Group(
-            stones=pc_set('A8 A9 B9'),
-            liberties=pc_set('A7 B8 C9')
-        )])
-        self.assertEqual(existing_O_groups, updated_O_groups)
 
 class TestEyeHandling(GoPositionTestCase):
     def test_is_koish(self):
-        self.assertEqual(go.is_koish(TEST_BOARD, pc('A9')), go.BLACK)
+        self.assertEqual(go.is_koish(TEST_BOARD, pc('A9')), BLACK)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('B8')), None)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('E5')), None)
@@ -101,18 +56,237 @@ class TestEyeHandling(GoPositionTestCase):
             X.OXX.OO.
             .XO.X.O.O
             XXO.X.OO.
-        ''', player1turn=True)
+        ''')
         B_eyes = pc_set('A9 B8 H8')
         W_eyes = pc_set('H2 J1')
         not_eyes = pc_set('A2 B3 J7 E5 J3')
         for be in B_eyes:
-            self.assertEqual(go.is_eye(board, be), go.BLACK)
+            self.assertEqual(go.is_eye(board, be), BLACK)
         for we in W_eyes:
-            self.assertEqual(go.is_eye(board, we), go.WHITE)
+            self.assertEqual(go.is_eye(board, we), WHITE)
         for ne in not_eyes:
             self.assertEqual(go.is_eye(board, ne), None)
 
+class TestLibertyTracker(unittest.TestCase):
+    def test_lib_tracker_init(self):
+        board = load_board('X........' + EMPTY_ROW * 8)
+
+        lib_tracker = LibertyTracker.from_board(board)
+        self.assertEqual(len(lib_tracker.groups), 1)
+        self.assertNotEqual(lib_tracker.group_index[pc('A9')], go.MISSING_GROUP_ID)
+        self.assertEqual(lib_tracker.liberty_cache[pc('A9')], 2)
+        sole_group = lib_tracker.groups[lib_tracker.group_index[pc('A9')]]
+        self.assertEqual(sole_group.stones, pc_set('A9'))
+        self.assertEqual(sole_group.liberties, pc_set('B9 A8'))
+        self.assertEqual(sole_group.color, BLACK)
+
+    def test_place_stone(self):
+        board = load_board('X........' + EMPTY_ROW * 8)
+        lib_tracker = LibertyTracker.from_board(board)
+        lib_tracker.add_stone(BLACK, pc('B9'))
+        self.assertEqual(len(lib_tracker.groups), 1)
+        self.assertNotEqual(lib_tracker.group_index[pc('A9')], go.MISSING_GROUP_ID)
+        self.assertEqual(lib_tracker.liberty_cache[pc('A9')], 3)
+        self.assertEqual(lib_tracker.liberty_cache[pc('B9')], 3)
+        sole_group = lib_tracker.groups[lib_tracker.group_index[pc('A9')]]
+        self.assertEqual(sole_group.stones, pc_set('A9 B9'))
+        self.assertEqual(sole_group.liberties, pc_set('C9 A8 B8'))
+        self.assertEqual(sole_group.color, BLACK)
+
+    def test_place_stone_opposite_color(self):
+        board = load_board('X........' + EMPTY_ROW * 8)
+        lib_tracker = LibertyTracker.from_board(board)
+        lib_tracker.add_stone(WHITE, pc('B9'))
+        self.assertEqual(len(lib_tracker.groups), 2)
+        self.assertNotEqual(lib_tracker.group_index[pc('A9')], go.MISSING_GROUP_ID)
+        self.assertNotEqual(lib_tracker.group_index[pc('B9')], go.MISSING_GROUP_ID)
+        self.assertEqual(lib_tracker.liberty_cache[pc('A9')], 1)
+        self.assertEqual(lib_tracker.liberty_cache[pc('B9')], 2)
+        black_group = lib_tracker.groups[lib_tracker.group_index[pc('A9')]]
+        white_group = lib_tracker.groups[lib_tracker.group_index[pc('B9')]]
+        self.assertEqual(black_group.stones, pc_set('A9'))
+        self.assertEqual(black_group.liberties, pc_set('A8'))
+        self.assertEqual(black_group.color, BLACK)
+        self.assertEqual(white_group.stones, pc_set('B9'))
+        self.assertEqual(white_group.liberties, pc_set('C9 B8'))
+        self.assertEqual(white_group.color, WHITE)
+
+    def test_merge_multiple_groups(self):
+        board = load_board('''
+            .X.......
+            X.X......
+            .X.......
+        ''' + EMPTY_ROW * 6)
+        lib_tracker = LibertyTracker.from_board(board)
+        lib_tracker.add_stone(BLACK, pc('B8'))
+        self.assertEqual(len(lib_tracker.groups), 1)
+        self.assertNotEqual(lib_tracker.group_index[pc('B8')], go.MISSING_GROUP_ID)
+        sole_group = lib_tracker.groups[lib_tracker.group_index[pc('B8')]]
+        self.assertEqual(sole_group.stones, pc_set('B9 A8 B8 C8 B7'))
+        self.assertEqual(sole_group.liberties, pc_set('A9 C9 D8 A7 C7 B6'))
+        self.assertEqual(sole_group.color, BLACK)
+
+        liberty_cache = lib_tracker.liberty_cache
+        for stone in sole_group.stones:
+            self.assertEqual(liberty_cache[stone], 6)
+
+    def test_capture_stone(self):
+        board = load_board('''
+            .X.......
+            XO.......
+            .X.......
+        ''' + EMPTY_ROW * 6)
+        lib_tracker = LibertyTracker.from_board(board)
+        captured = lib_tracker.add_stone(BLACK, pc('C8'))
+        self.assertEqual(len(lib_tracker.groups), 4)
+        self.assertEqual(lib_tracker.group_index[pc('B8')], go.MISSING_GROUP_ID)
+        self.assertEqual(captured, pc_set('B8'))
+
+    def test_capture_many(self):
+        board = load_board('''
+            .XX......
+            XOO......
+            .XX......
+        ''' + EMPTY_ROW * 6)
+        lib_tracker = LibertyTracker.from_board(board)
+        captured = lib_tracker.add_stone(BLACK, pc('D8'))
+        self.assertEqual(len(lib_tracker.groups), 4)
+        self.assertEqual(lib_tracker.group_index[pc('B8')], go.MISSING_GROUP_ID)
+        self.assertEqual(captured, pc_set('B8 C8'))
+
+        left_group = lib_tracker.groups[lib_tracker.group_index[pc('A8')]]
+        self.assertEqual(left_group.stones, pc_set('A8'))
+        self.assertEqual(left_group.liberties, pc_set('A9 B8 A7'))
+
+        right_group = lib_tracker.groups[lib_tracker.group_index[pc('D8')]]
+        self.assertEqual(right_group.stones, pc_set('D8'))
+        self.assertEqual(right_group.liberties, pc_set('D9 C8 E8 D7'))
+
+        top_group = lib_tracker.groups[lib_tracker.group_index[pc('B9')]]
+        self.assertEqual(top_group.stones, pc_set('B9 C9'))
+        self.assertEqual(top_group.liberties, pc_set('A9 D9 B8 C8'))
+
+        bottom_group = lib_tracker.groups[lib_tracker.group_index[pc('B7')]]
+        self.assertEqual(bottom_group.stones, pc_set('B7 C7'))
+        self.assertEqual(bottom_group.liberties, pc_set('B8 C8 A7 D7 B6 C6'))
+
+        liberty_cache = lib_tracker.liberty_cache
+        for stone in top_group.stones:
+            self.assertEqual(liberty_cache[stone], 4)
+        for stone in left_group.stones:
+            self.assertEqual(liberty_cache[stone], 3)
+        for stone in right_group.stones:
+            self.assertEqual(liberty_cache[stone], 4)
+        for stone in bottom_group.stones:
+            self.assertEqual(liberty_cache[stone], 6)
+        for stone in captured:
+            self.assertEqual(liberty_cache[stone], 0)
+
+    def test_capture_multiple_groups(self):
+        board = load_board('''
+            .OX......
+            OXX......
+            XX.......
+        ''' + EMPTY_ROW * 6)
+        lib_tracker = LibertyTracker.from_board(board)
+        captured = lib_tracker.add_stone(BLACK, pc('A9'))
+        self.assertEqual(len(lib_tracker.groups), 2)
+        self.assertEqual(captured, pc_set('B9 A8'))
+
+        corner_stone = lib_tracker.groups[lib_tracker.group_index[pc('A9')]]
+        self.assertEqual(corner_stone.stones, pc_set('A9'))
+        self.assertEqual(corner_stone.liberties, pc_set('B9 A8'))
+
+        surrounding_stones = lib_tracker.groups[lib_tracker.group_index[pc('C9')]]
+        self.assertEqual(surrounding_stones.stones, pc_set('C9 B8 C8 A7 B7'))
+        self.assertEqual(surrounding_stones.liberties, pc_set('B9 D9 A8 D8 C7 A6 B6'))
+
+        liberty_cache = lib_tracker.liberty_cache
+        for stone in corner_stone.stones:
+            self.assertEqual(liberty_cache[stone], 2)
+        for stone in surrounding_stones.stones:
+            self.assertEqual(liberty_cache[stone], 7)
+
+
+    def test_same_friendly_group_neighboring_twice(self):
+        board = load_board('''
+            XX.......
+            X........
+        ''' + EMPTY_ROW * 7)
+
+        lib_tracker = LibertyTracker.from_board(board)
+        captured = lib_tracker.add_stone(BLACK, pc('B8'))
+        self.assertEqual(len(lib_tracker.groups), 1)
+        sole_group_id = lib_tracker.group_index[pc('A9')]
+        sole_group = lib_tracker.groups[sole_group_id]
+        self.assertEqual(sole_group.stones, pc_set('A9 B9 A8 B8'))
+        self.assertEqual(sole_group.liberties, pc_set('C9 C8 A7 B7'))
+        self.assertEqual(captured, set())
+
+    def test_same_opponent_group_neighboring_twice(self):
+        board = load_board('''
+            XX.......
+            X........
+        ''' + EMPTY_ROW * 7)
+
+        lib_tracker = LibertyTracker.from_board(board)
+        captured = lib_tracker.add_stone(WHITE, pc('B8'))
+        self.assertEqual(len(lib_tracker.groups), 2)
+        black_group = lib_tracker.groups[lib_tracker.group_index[pc('A9')]]
+        self.assertEqual(black_group.stones, pc_set('A9 B9 A8'))
+        self.assertEqual(black_group.liberties, pc_set('C9 A7'))
+
+        white_group = lib_tracker.groups[lib_tracker.group_index[pc('B8')]]
+        self.assertEqual(white_group.stones, pc_set('B8'))
+        self.assertEqual(white_group.liberties, pc_set('C8 B7'))
+
+        self.assertEqual(captured, set())
+
 class TestPosition(GoPositionTestCase):
+    def test_passing(self):
+        start_position = Position(
+            board=TEST_BOARD,
+            n=0,
+            komi=6.5,
+            caps=(1, 2),
+            ko=pc('A1'),
+            recent=tuple(),
+            to_play=BLACK,
+        )
+        expected_position = Position(
+            board=TEST_BOARD,
+            n=1,
+            komi=6.5,
+            caps=(1, 2),
+            ko=None,
+            recent=(None,),
+            to_play=WHITE,
+        )
+        pass_position = start_position.pass_move()
+        self.assertEqualPositions(pass_position, expected_position)
+
+    def test_flipturn(self):
+        start_position = Position(
+            board=TEST_BOARD,
+            n=0,
+            komi=6.5,
+            caps=(1, 2),
+            ko=pc('A1'),
+            recent=tuple(),
+            to_play=BLACK,
+        )
+        expected_position = Position(
+            board=TEST_BOARD,
+            n=0,
+            komi=6.5,
+            caps=(1, 2),
+            ko=None,
+            recent=tuple(),
+            to_play=WHITE,
+        )
+        flip_position = start_position.flip_playerturn()
+        self.assertEqualPositions(flip_position, expected_position)
+
     def test_legal_moves(self):
         board = load_board('''
             .XXXXXXXO
@@ -124,72 +298,74 @@ class TestPosition(GoPositionTestCase):
             XXXXXXXXX
             XXXXXXXXX
             XXXXXXXX.
-        ''', player1turn=True)
-        position = go.Position(
+        ''')
+        position = Position(
             board=board,
             n=0,
             komi=6.5,
             caps=(0, 0),
-            groups=go.deduce_groups(board),
             ko=pc('J8'),
             recent=tuple(),
-            player1turn=True,
+            to_play=BLACK,
         )
         empty_spots = pc_set('A9 C8 J8 J6 J1')
         B_legal_moves = pc_set('A9 C8 J6')
         for move in empty_spots:
-            result = position.play_move(move)
-            self.assertEqual(result is not None, move in B_legal_moves)
+            if move not in B_legal_moves:
+                with self.assertRaises(go.IllegalMove):
+                    position.play_move(BLACK, move)
+            else:
+                position.play_move(BLACK, move)
 
         pass_position = position.pass_move()
         W_legal_moves = pc_set('C8 J8 J6 J1')
         for move in empty_spots:
-            result = pass_position.play_move(move)
-            self.assertEqual(result is not None, move in W_legal_moves)
+            if move not in W_legal_moves:
+                with self.assertRaises(go.IllegalMove):
+                    pass_position.play_move(WHITE, move)
+            else:
+                pass_position.play_move(WHITE, move)
 
     def test_move(self):
-        start_position = go.Position(
+        start_position = Position(
             board=TEST_BOARD,
             n=0,
             komi=6.5,
             caps=(1, 2),
-            groups=go.deduce_groups(TEST_BOARD),
             ko=None,
             recent=tuple(),
-            player1turn=True,
+            to_play=BLACK,
         )
         expected_board = load_board('''
             .XX....OO
             X........
-        ''' + EMPTY_ROW * 7, player1turn=False)
-        expected_position = go.Position(
+        ''' + EMPTY_ROW * 7)
+        expected_position = Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
-            caps=(2, 1),
-            groups=go.deduce_groups(expected_board),
+            komi=6.5,
+            caps=(1, 2),
             ko=None,
             recent=(pc('C9'),),
-            player1turn=False,
+            to_play=WHITE,
         )
-        actual_position = start_position.play_move(pc('C9'))
+        actual_position = start_position.play_move(BLACK, pc('C9'))
         self.assertEqualPositions(actual_position, expected_position)
 
         expected_board2 = load_board('''
             .XX....OO
             X.......O
-        ''' + EMPTY_ROW * 7, player1turn=True)
-        expected_position2 = go.Position(
+        ''' + EMPTY_ROW * 7)
+        expected_position2 = Position(
             board=expected_board2,
             n=2,
             komi=6.5,
             caps=(1, 2),
-            groups=go.deduce_groups(expected_board2),
             ko=None,
             recent=(pc('C9'), pc('J8')),
-            player1turn=True,
+            to_play=BLACK,
         )
-        actual_position2 = actual_position.play_move(pc('J8'))
+        actual_position2 = actual_position.play_move(WHITE, pc('J8'))
         self.assertEqualPositions(actual_position2, expected_position2)
 
     def test_move_with_capture(self):
@@ -198,83 +374,78 @@ class TestPosition(GoPositionTestCase):
             XOOX.....
             O.OX.....
             OOXX.....
-        ''', player1turn=True)
-        start_position = go.Position(
+        ''')
+        start_position = Position(
             board=start_board,
             n=0,
             komi=6.5,
             caps=(1, 2),
-            groups=go.deduce_groups(start_board),
             ko=None,
             recent=tuple(),
-            player1turn=True,
+            to_play=BLACK,
         )
         expected_board = load_board(EMPTY_ROW * 5 + '''
             XXXX.....
             X..X.....
             .X.X.....
             ..XX.....
-        ''', player1turn=False)
-        expected_position = go.Position(
+        ''')
+        expected_position = Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
-            caps=(2, 7),
-            groups=go.deduce_groups(expected_board),
+            komi=6.5,
+            caps=(7, 2),
             ko=None,
             recent=(pc('B2'),),
-            player1turn=False,
+            to_play=WHITE,
         )
-        actual_position = start_position.play_move(pc('B2'))
+        actual_position = start_position.play_move(BLACK, pc('B2'))
         self.assertEqualPositions(actual_position, expected_position)
 
     def test_ko_move(self):
         start_board = load_board('''
             .OX......
             OX.......
-        ''' + EMPTY_ROW * 7, player1turn=True)
-        start_position = go.Position(
+        ''' + EMPTY_ROW * 7)
+        start_position = Position(
             board=start_board,
             n=0,
             komi=6.5,
             caps=(1, 2),
-            groups=go.deduce_groups(start_board),
             ko=None,
             recent=tuple(),
-            player1turn=True,
+            to_play=BLACK,
         )
         expected_board = load_board('''
             X.X......
             OX.......
-        ''' + EMPTY_ROW * 7, player1turn=False)
-        expected_position = go.Position(
+        ''' + EMPTY_ROW * 7)
+        expected_position = Position(
             board=expected_board,
             n=1,
-            komi=-6.5,
+            komi=6.5,
             caps=(2, 2),
-            groups=go.deduce_groups(expected_board),
             ko=pc('B9'),
             recent=(pc('A9'),),
-            player1turn=False,
+            to_play=WHITE,
         )
-        actual_position = start_position.play_move(pc('A9'))
+        actual_position = start_position.play_move(BLACK, pc('A9'))
 
         self.assertEqualPositions(actual_position, expected_position)
 
         # Check that retaking ko is illegal until two intervening moves
-        ko_immediate_retake = actual_position.play_move(pc('B9'))
-        self.assertEqual(ko_immediate_retake, None)
+        with self.assertRaises(go.IllegalMove):
+            actual_position.play_move(WHITE, pc('B9'))
         pass_twice = actual_position.pass_move().pass_move()
-        ko_delayed_retake = pass_twice.play_move(pc('B9'))
-        expected_position = go.Position(
+        ko_delayed_retake = pass_twice.play_move(WHITE, pc('B9'))
+        expected_position = Position(
             board=start_board,
             n=4,
             komi=6.5,
             caps=(2, 3),
-            groups=go.deduce_groups(start_board),
             ko=pc('A9'),
             recent=(pc('A9'), None, None, pc('B9')),
-            player1turn=True,
+            to_play=BLACK,
         )
         self.assertEqualPositions(ko_delayed_retake, expected_position)
 
@@ -290,16 +461,15 @@ class TestScoring(unittest.TestCase):
                 .O.OOXOOX
                 .O.O.OOXX
                 ......OOO
-            ''', player1turn=True)
-            position = go.Position(
+            ''')
+            position = Position(
                 board=board,
                 n=54,
                 komi=6.5,
                 caps=(2, 5),
-                groups=go.deduce_groups(board),
                 ko=None,
                 recent=tuple(),
-                player1turn=True,
+                to_play=BLACK,
             )
             expected_score = 1.5
             self.assertEqual(position.score(), expected_score)
@@ -314,16 +484,15 @@ class TestScoring(unittest.TestCase):
                 .O.OOXOOX
                 .O.O.OOXX
                 ......OOO
-            ''', player1turn=False)
-            position = go.Position(
+            ''')
+            position = Position(
                 board=board,
                 n=55,
-                komi=-6.5,
-                caps=(5, 2),
-                groups=go.deduce_groups(board),
+                komi=6.5,
+                caps=(2, 5),
                 ko=None,
                 recent=tuple(),
-                player1turn=False,
+                to_play=WHITE,
             )
             expected_score = 2.5
             self.assertEqual(position.score(), expected_score)

@@ -22,10 +22,10 @@ class GtpInterface(object):
 
     def set_komi(self, komi):
         self.komi = komi
-        self.position = self.position._replace(komi=komi)
+        self.position.komi = komi
 
     def clear(self):
-        self.position = go.Position.initial_state()._replace(komi=self.komi)
+        self.position = go.Position(komi=self.komi)
 
     def accomodate_out_of_turn(self, color):
         player1turn = (color == gtp.BLACK)

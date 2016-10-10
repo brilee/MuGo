@@ -8,19 +8,15 @@ import utils
 
 go.set_board_size(9)
 
-def load_board(string, player1turn):
+def load_board(string):
     reverse_map = {
+        'X': go.BLACK,
+        'O': go.WHITE,
         '.': go.EMPTY,
         '#': go.FILL,
         '*': go.KO,
         '?': go.UNKNOWN
     }
-    if player1turn:
-        reverse_map['X'] = go.BLACK
-        reverse_map['O'] = go.WHITE
-    else:
-        reverse_map['O'] = go.BLACK
-        reverse_map['X'] = go.WHITE
 
     string = re.sub(r'[^XO\.#]+', '', string)
     assert len(string) == go.N ** 2, "Board to load didn't have right dimensions"
@@ -70,15 +66,41 @@ class GoPositionTestCase(unittest.TestCase):
     def assertEqualNPArray(self, array1, array2):
         if not np.all(array1 == array2):
             raise AssertionError("Arrays differed in one or more locations:\n%s\n%s" % (array1, array2))
-    def assertEqualPositions(self, position1, position2):
-        def sort_groups(groups):
-            return sorted(groups, key=lambda g: sorted(g.stones) + sorted(g.liberties))
-        canonical_p1 = position1._replace(groups=tuple(map(sort_groups, position1.groups)))
-        canonical_p2 = position2._replace(groups=tuple(map(sort_groups, position2.groups)))
-        self.assertEqualNPArray(canonical_p1.board, canonical_p2.board)
-        self.assertEqual(canonical_p1.n, canonical_p2.n)
-        self.assertEqual(canonical_p1.groups, canonical_p2.groups)
-        self.assertEqual(canonical_p1.caps, canonical_p2.caps)
-        self.assertEqual(canonical_p1.ko, canonical_p2.ko)
-        r_len = min(len(canonical_p1.recent), len(canonical_p2.recent))
-        self.assertEqual(canonical_p1.recent[-r_len:], canonical_p2.recent[-r_len:])
+
+    def assertEqualLibTracker(self, lib_tracker1, lib_tracker2):
+        # A lib tracker may have differently numbered groups yet still
+        # represent the same set of groups.
+        # "Sort" the group_ids to ensure they are the same.
+        def find_group_mapping(lib_tracker):
+            current_gid = 0
+            mapping = {}
+            for group_id in lib_tracker.group_index.ravel().tolist():
+                if group_id == go.MISSING_GROUP_ID:
+                    continue
+                if group_id not in mapping:
+                    mapping[group_id] = current_gid
+                    current_gid += 1
+            return mapping
+
+        lt1_mapping = find_group_mapping(lib_tracker1)
+        lt2_mapping = find_group_mapping(lib_tracker2)
+
+        remapped_group_index1 = [lt1_mapping.get(gid, go.MISSING_GROUP_ID) for gid in lib_tracker1.group_index.ravel().tolist()]
+        remapped_group_index2 = [lt2_mapping.get(gid, go.MISSING_GROUP_ID) for gid in lib_tracker2.group_index.ravel().tolist()]
+        self.assertEqual(remapped_group_index1, remapped_group_index2)
+
+        remapped_groups1 = {lt1_mapping.get(gid): group for gid, group in lib_tracker1.groups.items()}
+        remapped_groups2 = {lt2_mapping.get(gid): group for gid, group in lib_tracker2.groups.items()}
+        self.assertEqual(remapped_groups1, remapped_groups2)
+
+        self.assertEqualNPArray(lib_tracker1.liberty_cache, lib_tracker2.liberty_cache)
+
+    def assertEqualPositions(self, pos1, pos2):
+        self.assertEqualNPArray(pos1.board, pos2.board)
+        self.assertEqualLibTracker(pos1.lib_tracker, pos2.lib_tracker)
+        self.assertEqual(pos1.n, pos2.n)
+        self.assertEqual(pos1.caps, pos2.caps)
+        self.assertEqual(pos1.ko, pos2.ko)
+        r_len = min(len(pos1.recent), len(pos2.recent))
+        self.assertEqual(pos1.recent[-r_len:], pos2.recent[-r_len:])
+        self.assertEqual(pos1.to_play, pos2.to_play)

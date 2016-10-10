@@ -42,8 +42,13 @@ def planes(num_planes):
 def stone_color_feature(position):
     board = position.board
     features = np.zeros([go.N, go.N, 3], dtype=np.float32)
-    features[board == go.BLACK, 0] = 1
-    features[board == go.WHITE, 1] = 1
+    if position.to_play == go.BLACK:
+        features[board == go.BLACK, 0] = 1
+        features[board == go.WHITE, 1] = 1
+    else:
+        features[board == go.WHITE, 0] = 1
+        features[board == go.BLACK, 1] = 1
+
     features[board == go.EMPTY, 2] = 1
     return features
 
@@ -61,17 +66,14 @@ def recent_move_feature(position):
 
 @planes(P)
 def liberty_feature(position):
-    features = np.zeros([go.N, go.N], dtype=np.float32)
-    for g in itertools.chain(*position.groups):
-        libs = len(g.liberties)
-        for s in g.stones:
-            features[s] = libs
-    return make_onehot(features, P)
+    return make_onehot(position.get_liberties(), P)
 
 @planes(P)
 def would_capture_feature(position):
     features = np.zeros([go.N, go.N], dtype=np.float32)
-    for g in position.groups[1]:
+    for g in position.lib_tracker.groups.values():
+        if g.color == position.to_play:
+            continue
         if len(g.liberties) == 1:
             last_lib = list(g.liberties)[0]
             # += because the same spot may capture more than 1 group.
