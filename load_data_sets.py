@@ -111,9 +111,9 @@ class DataSet(object):
 
     def write(self, filename):
         header_bytes = struct.pack(CHUNK_HEADER_FORMAT, self.data_size, self.board_size, self.input_planes, self.is_test)
-        position_bytes = self.pos_features.tostring()
-        next_move_bytes = self.next_moves.tostring()
-        with gzip.open(filename, "wb") as f:
+        position_bytes = np.packbits(self.pos_features == 1).tostring()
+        next_move_bytes = np.packbits(self.next_moves == 1).tostring()
+        with gzip.open(filename, "wb", compresslevel=6) as f:
             f.write(header_bytes)
             f.write(position_bytes)
             f.write(next_move_bytes)
@@ -123,10 +123,21 @@ class DataSet(object):
         with gzip.open(filename, "rb") as f:
             header_bytes = f.read(CHUNK_HEADER_SIZE)
             data_size, board_size, input_planes, is_test = struct.unpack(CHUNK_HEADER_FORMAT, header_bytes)
-            position_bytes = f.read(data_size * board_size * board_size * input_planes * 4)
-            next_move_bytes = f.read(data_size * board_size * board_size * 2)
-            pos_features = np.fromstring(position_bytes, dtype=np.float32).reshape(data_size, board_size, board_size, input_planes)
-            next_moves = np.fromstring(next_move_bytes, dtype=np.int16).reshape(data_size, board_size * board_size)
+
+            position_dims = data_size * board_size * board_size * input_planes
+            next_move_dims = data_size * board_size * board_size
+
+            # the +7 // 8 compensates for numpy's bitpacking padding
+            packed_position_bytes = f.read((position_dims + 7) // 8)
+            packed_next_move_bytes = f.read((next_move_dims + 7) // 8)
+            # should have cleanly finished reading all bytes from file!
+            assert len(f.read()) == 0
+
+            position_padded = np.unpackbits(np.fromstring(packed_position_bytes, dtype=np.uint8))
+            next_move_padded = np.unpackbits(np.fromstring(packed_next_move_bytes, dtype=np.uint8))
+
+            pos_features = position_padded[:position_dims].reshape(data_size, board_size, board_size, input_planes)
+            next_moves = next_move_padded[:next_move_dims].reshape(data_size, board_size * board_size)
         return DataSet(pos_features, next_moves, [], is_test=is_test)
 
 def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
