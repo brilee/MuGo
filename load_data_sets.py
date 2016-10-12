@@ -1,5 +1,7 @@
+from io import BytesIO
 import itertools
 import gzip
+import snappy
 import numpy as np
 import os
 import struct
@@ -75,6 +77,15 @@ def split_test_training(positions_w_context, est_num_positions):
         training_chunks = iter_chunks(CHUNK_SIZE, positions_w_context)
         return test_chunk, training_chunks
 
+def nopack(nparray):
+    return nparray.tostring()
+
+def halfpack(nparray):
+    return (nparray == 1).tostring()
+
+def fullpack(nparray):
+    return np.packbits(nparray == 1).tostring()
+
 
 class DataSet(object):
     def __init__(self, pos_features, next_moves, results, is_test=False):
@@ -109,38 +120,76 @@ class DataSet(object):
         encoded_moves = make_onehot(map(utils.flatten_coords, next_moves), go.N ** 2)
         return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
 
-    def write(self, filename):
+    def write(self, filename, compression, packing):
         header_bytes = struct.pack(CHUNK_HEADER_FORMAT, self.data_size, self.board_size, self.input_planes, self.is_test)
-        position_bytes = np.packbits(self.pos_features == 1).tostring()
-        next_move_bytes = np.packbits(self.next_moves == 1).tostring()
-        with gzip.open(filename, "wb", compresslevel=6) as f:
-            f.write(header_bytes)
-            f.write(position_bytes)
-            f.write(next_move_bytes)
+        pack_strategy = {
+            'none': nopack,
+            'half': halfpack,
+            'full': fullpack,
+        }[packing]
+        position_bytes = pack_strategy(self.pos_features)
+        next_move_bytes = pack_strategy(self.next_moves)
+
+        if compression == 'none':
+            with open(filename, 'wb') as f:
+                f.write(header_bytes)
+                f.write(position_bytes)
+                f.write(next_move_bytes)
+        elif compression in ['gzip6', 'gzip9']:
+            level = 6 if compression == 'gzip6' else 9
+            with gzip.open(filename, 'wb', compresslevel=level) as f:
+                f.write(header_bytes)
+                f.write(position_bytes)
+                f.write(next_move_bytes)
+        elif compression == 'snappy':
+            with open(filename, 'wb') as f:
+                file_str = BytesIO()
+                file_str.write(header_bytes)
+                file_str.write(position_bytes)
+                file_str.write(next_move_bytes)
+                file_str.seek(0)
+                snappy.stream_compress(file_str, f)
 
     @staticmethod
-    def read(filename):
-        with gzip.open(filename, "rb") as f:
-            header_bytes = f.read(CHUNK_HEADER_SIZE)
-            data_size, board_size, input_planes, is_test = struct.unpack(CHUNK_HEADER_FORMAT, header_bytes)
+    def read(filename, compression, packing):
+        if compression == 'none':
+            f = open(filename, 'rb')
+        elif compression in ['gzip6', 'gzip9']:
+            f = gzip.open(filename, 'rb')
+        elif compression == 'snappy':
+            with open(filename, 'rb') as real_f:
+                f = BytesIO()
+                snappy.stream_decompress(real_f, f)
+                f.seek(0)
 
-            position_dims = data_size * board_size * board_size * input_planes
-            next_move_dims = data_size * board_size * board_size
+        header_bytes = f.read(CHUNK_HEADER_SIZE)
+        data_size, board_size, input_planes, is_test = struct.unpack(CHUNK_HEADER_FORMAT, header_bytes)
 
+        position_dims = data_size * board_size * board_size * input_planes
+        next_move_dims = data_size * board_size * board_size
+
+        if packing == 'none':
+            flat_position = np.fromstring(f.read(position_dims * 4), dtype=np.float32)
+            flat_nextmoves = np.fromstring(f.read(next_move_dims * 2), dtype=np.int16)
+        elif packing == 'half':
+            flat_position = np.fromstring(f.read(position_dims), dtype=np.uint8).astype(dtype=np.float32)
+            flat_nextmoves = np.fromstring(f.read(next_move_dims), dtype=np.uint8).astype(dtype=np.int16)
+        elif packing == 'full':
             # the +7 // 8 compensates for numpy's bitpacking padding
             packed_position_bytes = f.read((position_dims + 7) // 8)
             packed_next_move_bytes = f.read((next_move_dims + 7) // 8)
-            # should have cleanly finished reading all bytes from file!
-            assert len(f.read()) == 0
+            flat_position = np.unpackbits(np.fromstring(packed_position_bytes, dtype=np.uint8))[:position_dims]
+            flat_nextmoves = np.unpackbits(np.fromstring(packed_next_move_bytes, dtype=np.uint8))[:next_move_dims]
 
-            position_padded = np.unpackbits(np.fromstring(packed_position_bytes, dtype=np.uint8))
-            next_move_padded = np.unpackbits(np.fromstring(packed_next_move_bytes, dtype=np.uint8))
+        # should have cleanly finished reading all bytes from file!
+        assert len(f.read()) == 0
+        f.close()
 
-            pos_features = position_padded[:position_dims].reshape(data_size, board_size, board_size, input_planes)
-            next_moves = next_move_padded[:next_move_dims].reshape(data_size, board_size * board_size)
+        pos_features = flat_position.reshape(data_size, board_size, board_size, input_planes)
+        next_moves = flat_nextmoves.reshape(data_size, board_size * board_size)
         return DataSet(pos_features, next_moves, [], is_test=is_test)
 
-def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
+def process_raw_data(*dataset_dirs, processed_dir="processed_data", **opts):
     sgf_files = list(find_sgf_files(*dataset_dirs))
     print("%s sgfs found." % len(sgf_files), file=sys.stderr)
     est_num_positions = len(sgf_files) * 200 # about 200 moves per game
@@ -153,12 +202,12 @@ def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
     print("Writing test chunk")
     test_dataset = DataSet.from_positions_w_context(test_chunk, is_test=True)
     test_filename = os.path.join(processed_dir, "test.chunk.gz")
-    test_dataset.write(test_filename)
+    test_dataset.write(test_filename, **opts)
 
     training_datasets = map(DataSet.from_positions_w_context, training_chunks)
     for i, train_dataset in enumerate(training_datasets):
         if i % 10 == 0:
             print("Writing training chunk %s" % i)
         train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
-        train_dataset.write(train_filename)
+        train_dataset.write(train_filename, **opts)
     print("%s chunks written" % (i+1))

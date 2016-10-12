@@ -43,12 +43,12 @@ def gtp(strategy, read_file=None):
             sys.stdout.write(engine_reply)
             sys.stdout.flush()
 
-def preprocess(*data_sets, processed_dir="processed_data"):
+def preprocess(*data_sets, processed_dir="processed_data", compression='gzip6', packing='full'):
     processed_dir = os.path.join(os.getcwd(), processed_dir)
     if not os.path.isdir(processed_dir):
         os.mkdir(processed_dir)
 
-    process_raw_data(*data_sets, processed_dir=processed_dir)
+    process_raw_data(*data_sets, processed_dir=processed_dir, compression=compression, packing=packing)
 
 def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None):
     test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))
