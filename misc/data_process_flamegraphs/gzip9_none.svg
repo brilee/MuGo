@@ -337,103 +337,103 @@
 <text text-anchor="" x="1090.00" y="24" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="search" onmouseover="searchover()" onmouseout="searchout()" onclick="search_prompt()" style="opacity:0.1;cursor:pointer" >Search</text>
 <text text-anchor="" x="1090.00" y="305" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="matched" > </text>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>all (103,284 samples, 100%)</title><rect x="10.0" y="273" width="1180.0" height="15.0" fill="rgb(240,39,39)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`_call (103,284 samples, 100.00%)</title><rect x="10.0" y="161" width="1180.0" height="15.0" fill="rgb(250,15,40)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_call</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`liberty_feature (2,035 samples, 1.97%)</title><rect x="56.1" y="49" width="23.3" height="15.0" fill="rgb(211,47,37)" rx="2" ry="2" />
-<text text-anchor="" x="59.11" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >M..</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`_run_code (103,284 samples, 100.00%)</title><rect x="10.0" y="257" width="1180.0" height="15.0" fill="rgb(218,105,22)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_run_code</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`write (95,214 samples, 92.19%)</title><rect x="102.2" y="97" width="1087.8" height="15.0" fill="rgb(240,37,47)" rx="2" ry="2" />
-<text text-anchor="" x="105.20" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`write</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`(module) (103,284 samples, 100.00%)</title><rect x="10.0" y="209" width="1180.0" height="15.0" fill="rgb(243,24,36)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`(module)</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`_execute_command (103,284 samples, 100.00%)</title><rect x="10.0" y="177" width="1180.0" height="15.0" fill="rgb(218,85,34)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_execute_command</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`split_test_training (176 samples, 0.17%)</title><rect x="100.0" y="113" width="2.0" height="15.0" fill="rgb(220,136,43)" rx="2" ry="2" />
-<text text-anchor="" x="102.97" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`would_capture_feature (1,382 samples, 1.34%)</title><rect x="84.1" y="49" width="15.8" height="15.0" fill="rgb(221,212,30)" rx="2" ry="2" />
-<text text-anchor="" x="87.14" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`make_onehot (1,372 samples, 1.33%)</title><rect x="84.2" y="33" width="15.7" height="15.0" fill="rgb(214,118,2)" rx="2" ry="2" />
+<title>MainThread`make_onehot (1,372 samples, 1.33%)</title><rect x="84.2" y="33" width="15.7" height="15.0" fill="rgb(248,157,42)" rx="2" ry="2" />
 <text text-anchor="" x="87.25" y="43.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`stone_color_feature (265 samples, 0.26%)</title><rect x="81.1" y="49" width="3.0" height="15.0" fill="rgb(239,225,1)" rx="2" ry="2" />
-<text text-anchor="" x="84.11" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`write (95,233 samples, 92.20%)</title><rect x="102.0" y="113" width="1088.0" height="15.0" fill="rgb(219,14,1)" rx="2" ry="2" />
-<text text-anchor="" x="104.98" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`write</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`main (103,284 samples, 100.00%)</title><rect x="10.0" y="225" width="1180.0" height="15.0" fill="rgb(208,10,51)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`main</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`(listcomp) (3,835 samples, 3.71%)</title><rect x="56.1" y="65" width="43.8" height="15.0" fill="rgb(243,205,42)" rx="2" ry="2" />
-<text text-anchor="" x="59.11" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Main..</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`preprocess (103,284 samples, 100.00%)</title><rect x="10.0" y="145" width="1180.0" height="15.0" fill="rgb(226,56,0)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`preprocess</text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`close (19 samples, 0.02%)</title><rect x="102.0" y="97" width="0.2" height="15.0" fill="rgb(209,86,1)" rx="2" ry="2" />
-<text text-anchor="" x="104.98" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`from_positions_w_context (7,874 samples, 7.62%)</title><rect x="10.0" y="113" width="90.0" height="15.0" fill="rgb(242,103,14)" rx="2" ry="2" />
+<title>MainThread`from_positions_w_context (7,874 samples, 7.62%)</title><rect x="10.0" y="113" width="90.0" height="15.0" fill="rgb(235,110,15)" rx="2" ry="2" />
 <text text-anchor="" x="13.01" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread..</text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`process_raw_data (103,284 samples, 100.00%)</title><rect x="10.0" y="129" width="1180.0" height="15.0" fill="rgb(211,42,9)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`process_raw_data</text>
+<title>MainThread`split_test_training (176 samples, 0.17%)</title><rect x="100.0" y="113" width="2.0" height="15.0" fill="rgb(232,36,11)" rx="2" ry="2" />
+<text text-anchor="" x="102.97" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`extract_features (7,870 samples, 7.62%)</title><rect x="10.0" y="97" width="89.9" height="15.0" fill="rgb(207,31,35)" rx="2" ry="2" />
-<text text-anchor="" x="13.01" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread..</text>
+<title>MainThread`(module) (103,284 samples, 100.00%)</title><rect x="10.0" y="209" width="1180.0" height="15.0" fill="rgb(236,171,20)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`(module)</text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`(module) (103,284 samples, 100.00%)</title><rect x="10.0" y="241" width="1180.0" height="15.0" fill="rgb(241,52,29)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`(module)</text>
+<title>all (103,284 samples, 100%)</title><rect x="10.0" y="273" width="1180.0" height="15.0" fill="rgb(252,70,28)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="283.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`make_onehot (1,991 samples, 1.93%)</title><rect x="56.6" y="33" width="22.8" height="15.0" fill="rgb(235,151,10)" rx="2" ry="2" />
+<title>MainThread`would_capture_feature (1,382 samples, 1.34%)</title><rect x="84.1" y="49" width="15.8" height="15.0" fill="rgb(217,193,50)" rx="2" ry="2" />
+<text text-anchor="" x="87.14" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`dispatch (103,284 samples, 100.00%)</title><rect x="10.0" y="193" width="1180.0" height="15.0" fill="rgb(253,75,53)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`dispatch</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`stone_color_feature (265 samples, 0.26%)</title><rect x="81.1" y="49" width="3.0" height="15.0" fill="rgb(238,175,53)" rx="2" ry="2" />
+<text text-anchor="" x="84.11" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`make_onehot (1,991 samples, 1.93%)</title><rect x="56.6" y="33" width="22.8" height="15.0" fill="rgb(248,157,42)" rx="2" ry="2" />
 <text text-anchor="" x="59.61" y="43.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >M..</text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`extract (6,740 samples, 6.53%)</title><rect x="22.9" y="81" width="77.0" height="15.0" fill="rgb(218,129,52)" rx="2" ry="2" />
-<text text-anchor="" x="25.92" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThre..</text>
+<title>MainThread`extract_features (7,870 samples, 7.62%)</title><rect x="10.0" y="97" width="89.9" height="15.0" fill="rgb(212,15,49)" rx="2" ry="2" />
+<text text-anchor="" x="13.01" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread..</text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`recent_move_feature (153 samples, 0.15%)</title><rect x="79.4" y="49" width="1.7" height="15.0" fill="rgb(206,34,38)" rx="2" ry="2" />
-<text text-anchor="" x="82.36" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
-</g>
-<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`get_positions_from_sgf (176 samples, 0.17%)</title><rect x="100.0" y="97" width="2.0" height="15.0" fill="rgb(235,202,8)" rx="2" ry="2" />
+<title>MainThread`get_positions_from_sgf (176 samples, 0.17%)</title><rect x="100.0" y="97" width="2.0" height="15.0" fill="rgb(237,63,4)" rx="2" ry="2" />
 <text text-anchor="" x="102.97" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 <g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
-<title>MainThread`dispatch (103,284 samples, 100.00%)</title><rect x="10.0" y="193" width="1180.0" height="15.0" fill="rgb(231,75,4)" rx="2" ry="2" />
-<text text-anchor="" x="13.00" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`dispatch</text>
+<title>MainThread`main (103,284 samples, 100.00%)</title><rect x="10.0" y="225" width="1180.0" height="15.0" fill="rgb(221,196,33)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`main</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`process_raw_data (103,284 samples, 100.00%)</title><rect x="10.0" y="129" width="1180.0" height="15.0" fill="rgb(242,182,30)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`process_raw_data</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`_run_code (103,284 samples, 100.00%)</title><rect x="10.0" y="257" width="1180.0" height="15.0" fill="rgb(233,32,25)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_run_code</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`preprocess (103,284 samples, 100.00%)</title><rect x="10.0" y="145" width="1180.0" height="15.0" fill="rgb(220,147,17)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`preprocess</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`_call (103,284 samples, 100.00%)</title><rect x="10.0" y="161" width="1180.0" height="15.0" fill="rgb(248,92,29)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_call</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`(listcomp) (3,835 samples, 3.71%)</title><rect x="56.1" y="65" width="43.8" height="15.0" fill="rgb(208,115,26)" rx="2" ry="2" />
+<text text-anchor="" x="59.11" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >Main..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`write (95,233 samples, 92.20%)</title><rect x="102.0" y="113" width="1088.0" height="15.0" fill="rgb(251,159,21)" rx="2" ry="2" />
+<text text-anchor="" x="104.98" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`write</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`(module) (103,284 samples, 100.00%)</title><rect x="10.0" y="241" width="1180.0" height="15.0" fill="rgb(236,171,20)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`(module)</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`liberty_feature (2,035 samples, 1.97%)</title><rect x="56.1" y="49" width="23.3" height="15.0" fill="rgb(210,101,19)" rx="2" ry="2" />
+<text text-anchor="" x="59.11" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >M..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`_execute_command (103,284 samples, 100.00%)</title><rect x="10.0" y="177" width="1180.0" height="15.0" fill="rgb(226,121,30)" rx="2" ry="2" />
+<text text-anchor="" x="13.00" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`_execute_command</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`close (19 samples, 0.02%)</title><rect x="102.0" y="97" width="0.2" height="15.0" fill="rgb(232,10,33)" rx="2" ry="2" />
+<text text-anchor="" x="104.98" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`extract (6,740 samples, 6.53%)</title><rect x="22.9" y="81" width="77.0" height="15.0" fill="rgb(211,193,53)" rx="2" ry="2" />
+<text text-anchor="" x="25.92" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThre..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`write (95,214 samples, 92.19%)</title><rect x="102.2" y="97" width="1087.8" height="15.0" fill="rgb(251,159,21)" rx="2" ry="2" />
+<text text-anchor="" x="105.20" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MainThread`write</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MainThread`recent_move_feature (153 samples, 0.15%)</title><rect x="79.4" y="49" width="1.7" height="15.0" fill="rgb(236,195,29)" rx="2" ry="2" />
+<text text-anchor="" x="82.36" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
 </g>
 </svg>
