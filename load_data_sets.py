@@ -133,11 +133,12 @@ class DataSet(object):
             # should have cleanly finished reading all bytes from file!
             assert len(f.read()) == 0
 
-            position_padded = np.unpackbits(np.fromstring(packed_position_bytes, dtype=np.uint8))
-            next_move_padded = np.unpackbits(np.fromstring(packed_next_move_bytes, dtype=np.uint8))
+            flat_position = np.unpackbits(np.fromstring(packed_position_bytes, dtype=np.uint8))[:position_dims]
+            flat_nextmoves = np.unpackbits(np.fromstring(packed_next_move_bytes, dtype=np.uint8))[:next_move_dims]
 
-            pos_features = position_padded[:position_dims].reshape(data_size, board_size, board_size, input_planes)
-            next_moves = next_move_padded[:next_move_dims].reshape(data_size, board_size * board_size)
+            pos_features = flat_position.reshape(data_size, board_size, board_size, input_planes)
+            next_moves = flat_nextmoves.reshape(data_size, board_size * board_size)
+
         return DataSet(pos_features, next_moves, [], is_test=is_test)
 
 def process_raw_data(*dataset_dirs, processed_dir="processed_data"):
