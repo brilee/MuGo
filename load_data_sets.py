@@ -5,12 +5,24 @@ import snappy
 import numpy as np
 import os
 import struct
-import sys
+import time
 
 from features import DEFAULT_FEATURES
 import go
 import sgf_wrapper
 import utils
+
+from contextlib import contextmanager
+
+@contextmanager
+def timer():
+    tick = time.time()
+    yield
+    tock = time.time()
+    print("%.2f\t" % (tock - tick), end='|')
+
+
+
 
 # Number of data points to store in a chunk on disk
 CHUNK_SIZE = 4096
@@ -127,28 +139,30 @@ class DataSet(object):
             'half': halfpack,
             'full': fullpack,
         }[packing]
-        position_bytes = pack_strategy(self.pos_features)
-        next_move_bytes = pack_strategy(self.next_moves)
+        with timer():
+            position_bytes = pack_strategy(self.pos_features)
+            next_move_bytes = pack_strategy(self.next_moves)
 
-        if compression == 'none':
-            with open(filename, 'wb') as f:
-                f.write(header_bytes)
-                f.write(position_bytes)
-                f.write(next_move_bytes)
-        elif compression in ['gzip6', 'gzip9']:
-            level = 6 if compression == 'gzip6' else 9
-            with gzip.open(filename, 'wb', compresslevel=level) as f:
-                f.write(header_bytes)
-                f.write(position_bytes)
-                f.write(next_move_bytes)
-        elif compression == 'snappy':
-            with open(filename, 'wb') as f:
-                file_str = BytesIO()
-                file_str.write(header_bytes)
-                file_str.write(position_bytes)
-                file_str.write(next_move_bytes)
-                file_str.seek(0)
-                snappy.stream_compress(file_str, f)
+        with timer():
+            if compression == 'none':
+                with open(filename, 'wb') as f:
+                    f.write(header_bytes)
+                    f.write(position_bytes)
+                    f.write(next_move_bytes)
+            elif compression in ['gzip6', 'gzip9']:
+                level = 6 if compression == 'gzip6' else 9
+                with gzip.open(filename, 'wb', compresslevel=level) as f:
+                    f.write(header_bytes)
+                    f.write(position_bytes)
+                    f.write(next_move_bytes)
+            elif compression == 'snappy':
+                with open(filename, 'wb') as f:
+                    file_str = BytesIO()
+                    file_str.write(header_bytes)
+                    file_str.write(position_bytes)
+                    file_str.write(next_move_bytes)
+                    file_str.seek(0)
+                    snappy.stream_compress(file_str, f)
 
     @staticmethod
     def read(filename, compression, packing):
@@ -191,23 +205,8 @@ class DataSet(object):
 
 def process_raw_data(*dataset_dirs, processed_dir="processed_data", **opts):
     sgf_files = list(find_sgf_files(*dataset_dirs))
-    print("%s sgfs found." % len(sgf_files), file=sys.stderr)
-    est_num_positions = len(sgf_files) * 200 # about 200 moves per game
-    print("Estimated number of chunks: %s" % (est_num_positions // CHUNK_SIZE), file=sys.stderr)
     positions_w_context = itertools.chain(*map(get_positions_from_sgf, sgf_files))
-
-    test_chunk, training_chunks = split_test_training(positions_w_context, est_num_positions)
-    print("Allocating %s positions as test; remainder as training" % len(test_chunk), file=sys.stderr)
-
-    print("Writing test chunk")
-    test_dataset = DataSet.from_positions_w_context(test_chunk, is_test=True)
-    test_filename = os.path.join(processed_dir, "test.chunk.gz")
-    test_dataset.write(test_filename, **opts)
-
-    training_datasets = map(DataSet.from_positions_w_context, training_chunks)
-    for i, train_dataset in enumerate(training_datasets):
-        if i % 10 == 0:
-            print("Writing training chunk %s" % i)
-        train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
-        train_dataset.write(train_filename, **opts)
-    print("%s chunks written" % (i+1))
+    with timer():
+        all_data = DataSet.from_positions_w_context(positions_w_context)
+    test_filename = os.path.join(processed_dir, "all_data")
+    all_data.write(test_filename, **opts)
