@@ -50,7 +50,7 @@ def preprocess(*data_sets, processed_dir="processed_data"):
 
     process_raw_data(*data_sets, processed_dir=processed_dir)
 
-def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None):
+def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None, checkpoint_freq=1000):
     test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))
     train_chunk_files = [os.path.join(processed_dir, fname) 
         for fname in os.listdir(processed_dir)
@@ -66,8 +66,8 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None)
             print("Using %s" % file)
             train_dataset = DataSet.read(file)
             n.train(train_dataset)
-            n.check_accuracy(test_dataset)
-            if save_file is not None and n.get_global_step() > last_save_checkpoint + 1000:
+            if save_file is not None and n.get_global_step() > last_save_checkpoint + checkpoint_freq:
+                n.check_accuracy(test_dataset)
                 print("Saving checkpoint to %s" % save_file, file=sys.stderr)
                 last_save_checkpoint = n.get_global_step()
                 n.save_variables(save_file)
