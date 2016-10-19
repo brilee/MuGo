@@ -10,34 +10,32 @@ TEST_BOARD = load_board('''
 .X.....OO
 X........
 XXXXXXXXX
-''' + EMPTY_ROW * 6, player1turn=True)
+''' + EMPTY_ROW * 6)
 
 TEST_POSITION = go.Position(
     board=TEST_BOARD,
     n=0,
     komi=6.5,
     caps=(1,2),
-    groups=go.deduce_groups(TEST_BOARD),
     ko=None,
     recent=((0, 1), (0, 8), (1, 0)),
-    player1turn=True,
+    to_play=go.BLACK,
 )
 
 TEST_BOARD2 = load_board('''
 .XOXXOO..
 XO.OXOX..
 XXO..X...
-''' + EMPTY_ROW * 6, player1turn=True)
+''' + EMPTY_ROW * 6)
 
 TEST_POSITION2 = go.Position(
     board=TEST_BOARD2,
     n=0,
     komi=6.5,
     caps=(0, 0),
-    groups=go.deduce_groups(TEST_BOARD2),
     ko=None,
     recent=tuple(),
-    player1turn=True,
+    to_play=go.BLACK,
 )
 
 

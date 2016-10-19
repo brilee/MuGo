@@ -6,15 +6,12 @@ Most of the complexity here is dealing with two features of SGF:
   to configure L+D puzzles, but also for initial handicap placement.
 - Plays don't necessarily alternate colors; they can be repeated B or W moves
   This feature is used to handle free handicap placement.
-
-Since our Go position data structure flips all colors based on whose turn it is
-we have to look ahead at next move to correctly create a position.
 '''
 from collections import namedtuple
 import numpy as np
 
 import go
-from go import Position, deduce_groups
+from go import Position
 from utils import parse_sgf_coords as pc
 import sgf
 
@@ -40,26 +37,19 @@ def handle_node(pos, node):
     # If B/W props are not present, then there is no move. But if it is present and equal to the empty string, then the move was a pass.
     elif 'B' in props:
         black_move = pc(props.get('B', [''])[0])
-        return play_move(pos, black_move, player1turn=True)
+        return pos.play_move(go.BLACK, black_move)
     elif 'W' in props:
         white_move = pc(props.get('W', [''])[0])
-        return play_move(pos, white_move, player1turn=False)
+        return pos.play_move(go.WHITE, white_move)
     else:
         return pos
 
 def add_stones(pos, black_stones_added, white_stones_added):
-    black_color, white_color = (go.BLACK, go.WHITE) if pos.player1turn else (go.WHITE, go.BLACK)
     working_board = np.copy(pos.board)
-    for b in black_stones_added:
-        working_board[b] = black_color
-    for w in white_stones_added:
-        working_board[w] = white_color
-    return pos._replace(board=working_board, groups=deduce_groups(working_board))
-
-def play_move(pos, move, player1turn):
-    if pos.player1turn != player1turn:
-        pos = pos.flip_playerturn()
-    return pos.play_move(move)
+    go.place_stones(working_board, go.BLACK, black_stones_added)
+    go.place_stones(working_board, go.WHITE, white_stones_added)
+    new_position = Position(board=working_board, n=pos.n, komi=pos.komi, caps=pos.caps, ko=pos.ko, recent=pos.recent, to_play=pos.to_play)
+    return new_position
 
 def get_next_move(node):
     if not node.next:
@@ -73,8 +63,8 @@ def get_next_move(node):
 def maybe_correct_next(pos, next_node):
     if next_node is None:
         return pos
-    if (('B' in next_node.properties and not pos.player1turn) or
-        ('W' in next_node.properties and pos.player1turn)):
+    if (('B' in next_node.properties and not pos.to_play == go.BLACK) or
+        ('W' in next_node.properties and not pos.to_play == go.WHITE)):
         pos = pos.flip_playerturn()
     return pos
 
@@ -103,8 +93,7 @@ class SgfWrapper(object):
         go.set_board_size(self.metadata.board_size)
 
     def get_main_branch(self):
-        pos = Position.initial_state()
-        pos = pos._replace(komi=self.komi)
+        pos = Position(komi=self.komi)
         current_node = self.game.root
         while pos is not None and current_node is not None:
             pos = handle_node(pos, current_node)

@@ -1,23 +1,27 @@
 '''
-Conventions used: "B" to play, always. "W" is the opponent.
-Traditional Black and White players are instead referred to as X and O,
-or equivalently, "player 1" and "player 2".
-All positions are stored in B to play notation, for easier feeding into
-neural networks.
-
+A board is a NxN numpy array.
 A Coordinate is a tuple index into the board.
 A Move is a (Coordinate c | None).
 
-When representing the numpy array as a board, (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
+play_move and all supporting functions are mutating.
+Board must be explicitly copied to preserve a copy of current state.
 
+(0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
 '''
 from collections import namedtuple
+import copy
 import itertools
 
 import numpy as np
 
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
+# This means that swapping colors is as simple as multiplying array by -1.
 WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
+
+# Represents "group not found" in the LibertyTracker object
+MISSING_GROUP_ID = -1
+
+class IllegalMove(Exception): pass
 
 # these are initialized by set_board_size
 N = None
@@ -42,38 +46,24 @@ def set_board_size(n):
     NEIGHBORS = {(x, y): list(filter(check_bounds, [(x+1, y), (x-1, y), (x, y+1), (x, y-1)])) for x, y in ALL_COORDS}
     DIAGONALS = {(x, y): list(filter(check_bounds, [(x+1, y+1), (x+1, y-1), (x-1, y+1), (x-1, y-1)])) for x, y in ALL_COORDS}
 
-def place_stone(board, color, c):
-    new_board = np.copy(board)
-    new_board[c] = color
-    return new_board
-
-def capture_stones(board, stones):
+def place_stones(board, color, stones):
     for s in stones:
-        board[s] = EMPTY
+        board[s] = color
 
-def flood_fill(board, c):
-    'From a starting coordinate c, flood-fill (mutate) the board with FILL'
+def find_reached(board, c):
     color = board[c]
-    entire_group = set([c])
+    chain = set([c])
+    reached = set()
     frontier = [c]
     while frontier:
         current = frontier.pop()
-        board[current] = FILL
+        chain.add(current)
         for n in NEIGHBORS[current]:
-            if board[n] == color:
+            if board[n] == color and not n in chain:
                 frontier.append(n)
-                entire_group.add(n)
-    return entire_group
-
-def find_neighbors(color, board, stones):
-    'Find all neighbors of a set of stones of a given color'
-    potential_neighbors = set(itertools.chain(*(NEIGHBORS[s] for s in stones)))
-    equal_color = board == color
-    return {c for c in potential_neighbors if equal_color[c]}
-
-def find_liberties(board, stones):
-    'Given a board and a set of stones, find liberties of those stones'
-    return find_neighbors(EMPTY, board, stones)
+            elif board[n] != color:
+                reached.add(n)
+    return chain, reached
 
 def is_koish(board, c):
     'Check if c is surrounded on all sides by 1 color, and return that color'
@@ -101,74 +91,174 @@ def is_eye(board, c):
     else:
         return color
 
-class Group(namedtuple('Group', 'stones liberties')):
+class Group(namedtuple('Group', ['id', 'stones', 'liberties', 'color'])):
     '''
     stones: a set of Coordinates belonging to this group
     liberties: a set of Coordinates that are empty and adjacent to this group.
+    color: color of this group
     '''
-    pass
+    def __eq__(self, other):
+        return self.stones == other.stones and self.liberties == other.liberties and self.color == other.color
 
 
-def deduce_groups(board):
-    'Given a board, return a 2-tuple; a list of groups for each player'
-    def find_groups(board, color):
-        board = np.copy(board)
-        groups = []
-        while color in board:
-            remaining_stones = np.where(board == color)
-            c = remaining_stones[0][0], remaining_stones[1][0]
-            stones = flood_fill(board, c)
-            liberties = find_liberties(board, stones)
-            groups.append(Group(stones=set(stones), liberties=liberties))
-        return groups
-
-    return find_groups(board, BLACK), find_groups(board, WHITE)
-
-def update_groups(board, existing_B_groups, existing_W_groups, c):
-    '''
-    When a move is played, update the list of groups and their liberties.
-    This means possibly appending the new move to a group, creating a new 1-stone group, or merging existing groups.
-    The returned groups represent the state after the move has been played,
-    but before captures are processed.
-    '''
-    updated_B_groups, groups_to_merge = [], []
-    for g in existing_B_groups:
-        if c in g.liberties:
-            groups_to_merge.append(g)
-        else:
-            updated_B_groups.append(g)
-
-    new_stones = {c}
-    new_liberties = set(n for n in NEIGHBORS[c] if board[n] == EMPTY)
-    for g in groups_to_merge:
-        new_stones = new_stones | g.stones
-        new_liberties = new_liberties | g.liberties
-    new_liberties = new_liberties - {c}
-    updated_B_groups.append(Group(stones=new_stones, liberties=new_liberties))
-
-    updated_W_groups = []
-    for g in existing_W_groups:
-        if c in g.liberties:
-            updated_W_groups.append(Group(stones=g.stones, liberties=g.liberties - {c}))
-        else:
-            updated_W_groups.append(g)
-
-    return updated_B_groups, updated_W_groups
-
-class Position(namedtuple('Position', 'board n komi caps groups ko recent player1turn')):
-    '''
-    board: a numpy array, with B to play.
-    n: an int representing moves played so far
-    komi: a float, representing points given to the second player.
-    caps: a (int, int) tuple of captures; caps[0] is the person to play (B).
-    groups: a (list(Group), list(Group)) tuple of lists of Groups; groups[0] represents the groups of the person to play.
-    ko: a Move
-    recent: a tuple of Moves, such that recent[-1] is the last move. (Would be nicely implemented as a linked list in lower level languages!)
-    player1turn: whether player 1 is B.
-    '''
+class LibertyTracker():
     @staticmethod
-    def initial_state():
-        return Position(EMPTY_BOARD, n=0, komi=7.5, caps=(0, 0), groups=([], []), ko=None, recent=tuple(), player1turn=True)
+    def from_board(board):
+        board = np.copy(board)
+        curr_group_id = 0
+        lib_tracker = LibertyTracker()
+        for color in (WHITE, BLACK):
+            while color in board:
+                curr_group_id += 1
+                found_color = np.where(board == color)
+                coord = found_color[0][0], found_color[1][0]
+                chain, reached = find_reached(board, coord)
+                liberties = set(r for r in reached if board[r] == EMPTY)
+                new_group = Group(curr_group_id, chain, liberties, color)
+                lib_tracker.groups[curr_group_id] = new_group
+                for s in chain:
+                    lib_tracker.group_index[s] = curr_group_id
+                place_stones(board, FILL, chain)
+
+        lib_tracker.max_group_id = curr_group_id
+
+        liberty_counts = np.zeros([N, N])
+        for group in lib_tracker.groups.values():
+            num_libs = len(group.liberties)
+            for s in group.stones:
+                liberty_counts[s] = num_libs
+        lib_tracker.liberty_cache = liberty_counts
+
+        return lib_tracker
+
+    def __init__(self, group_index=None, groups=None, liberty_cache=None, max_group_id=1):
+        # group_index: a NxN numpy array of group_ids. -1 means no group
+        # groups: a dict of group_id to groups
+        # liberty_cache: a NxN numpy array of liberty counts
+        self.group_index = group_index if group_index is not None else -np.ones([N, N], dtype=np.int16)
+        self.groups = groups or {}
+        self.liberty_cache = liberty_cache if liberty_cache is not None else np.zeros([N, N], dtype=np.int8)
+        self.max_group_id = max_group_id
+
+    def __deepcopy__(self, memodict={}):
+        new_group_index = np.copy(self.group_index)
+        new_lib_cache = np.copy(self.liberty_cache)
+        new_groups = {
+            group.id: Group(group.id, set(group.stones), set(group.liberties), group.color)
+            for group in self.groups.values()
+        }
+        return LibertyTracker(new_group_index, new_groups, liberty_cache=new_lib_cache, max_group_id=self.max_group_id)
+
+    def add_stone(self, color, c):
+        assert self.group_index[c] == MISSING_GROUP_ID
+        captured_stones = set()
+        opponent_neighboring_group_ids = set()
+        friendly_neighboring_group_ids = set()
+        empty_neighbors = set()
+
+        for n in NEIGHBORS[c]:
+            neighbor_group_id = self.group_index[n]
+            if neighbor_group_id != MISSING_GROUP_ID:
+                neighbor_group = self.groups[neighbor_group_id]
+                if neighbor_group.color == color:
+                    friendly_neighboring_group_ids.add(neighbor_group_id)
+                else:
+                    opponent_neighboring_group_ids.add(neighbor_group_id)
+            else:
+                empty_neighbors.add(n)
+
+        new_group = self._create_group(color, c, empty_neighbors)
+
+        for group_id in friendly_neighboring_group_ids:
+            new_group = self._merge_groups(group_id, new_group.id)
+
+        for group_id in opponent_neighboring_group_ids:
+            neighbor_group = self.groups[group_id]
+            if len(neighbor_group.liberties) == 1:
+                captured = self._capture_group(group_id)
+                captured_stones.update(captured)
+            else:
+                self._update_liberties(group_id, remove={c})
+
+        self._handle_captures(captured_stones)
+
+        # suicide is illegal
+        if len(new_group.liberties) == 0:
+            raise IllegalMove
+
+        return captured_stones
+
+    def _create_group(self, color, c, liberties):
+        self.max_group_id += 1
+        new_group = Group(self.max_group_id, set([c]), liberties, color)
+        self.groups[new_group.id] = new_group
+        self.group_index[c] = new_group.id
+        self.liberty_cache[c] = len(liberties)
+        return new_group
+
+    def _merge_groups(self, group1_id, group2_id):
+        group1 = self.groups[group1_id]
+        group2 = self.groups[group2_id]
+        group1.stones.update(group2.stones)
+        del self.groups[group2_id]
+        for s in group2.stones:
+            self.group_index[s] = group1_id
+
+        self._update_liberties(group1_id, add=group2.liberties, remove=(group2.stones | group1.stones))
+
+        return group1
+
+    def _capture_group(self, group_id):
+        dead_group = self.groups[group_id]
+        del self.groups[group_id]
+        for s in dead_group.stones:
+            self.group_index[s] = MISSING_GROUP_ID
+            self.liberty_cache[s] = 0
+        return dead_group.stones
+
+    def _update_liberties(self, group_id, add=None, remove=None):
+        group = self.groups[group_id]
+        if add:
+            group.liberties.update(add)
+        if remove:
+            group.liberties.difference_update(remove)
+
+        new_lib_count = len(group.liberties)
+        for s in group.stones:
+            self.liberty_cache[s] = new_lib_count
+
+    def _handle_captures(self, captured_stones):
+        for s in captured_stones:
+            for n in NEIGHBORS[s]:
+                group_id = self.group_index[n]
+                if group_id != MISSING_GROUP_ID:
+                    self._update_liberties(group_id, add={s})
+
+class Position():
+    def __init__(self, board=None, n=0, komi=7.5, caps=(0, 0), lib_tracker=None, ko=None, recent=tuple(), to_play=BLACK):
+        '''
+        board: a numpy array
+        n: an int representing moves played so far
+        komi: a float, representing points given to the second player.
+        caps: a (int, int) tuple of captures for B, W.
+        lib_tracker: a LibertyTracker object
+        ko: a Move
+        recent: a tuple of Moves, such that recent[-1] is the last move. (Would be nicely implemented as a linked list in lower level languages!)
+        to_play: BLACK or WHITE
+        '''
+        self.board = board if board is not None else np.copy(EMPTY_BOARD)
+        self.n = n
+        self.komi = komi
+        self.caps = caps
+        self.lib_tracker = lib_tracker or LibertyTracker.from_board(self.board)
+        self.ko = ko
+        self.recent = recent
+        self.to_play = to_play
+
+    def __deepcopy__(self, memodict={}):
+        new_board = np.copy(self.board)
+        new_lib_tracker = copy.deepcopy(self.lib_tracker)
+        return Position(new_board, self.n, self.komi, self.caps, new_lib_tracker, self.ko, self.recent, self.to_play)
 
     def __str__(self):
         pretty_print_map = {
@@ -178,14 +268,10 @@ class Position(namedtuple('Position', 'board n komi caps groups ko recent player
             FILL: '#',
             KO: '*',
         }
-        if not self.player1turn:
-            board = self.board * -1
-            captures = self.caps[1], self.caps[0]
-        else:
-            board = self.board
-            captures = self.caps
+        board = np.copy(self.board)
+        captures = self.caps
         if self.ko is not None:
-            board = place_stone(board, KO, self.ko)
+            place_stones(board, KO, [self.ko])
         raw_board_contents = []
         for i in range(N):
             row = []
@@ -202,30 +288,23 @@ class Position(namedtuple('Position', 'board n komi caps groups ko recent player
         return annotated_board + details
 
     def pass_move(self):
-        return Position(
-            board=self.board * -1,
-            n=self.n+1,
-            komi=-self.komi,
-            caps=(self.caps[1], self.caps[0]),
-            groups=(self.groups[1], self.groups[0]),
-            ko=None,
-            recent=self.recent + (None,),
-            player1turn=not self.player1turn,
-        )
+        pos = copy.deepcopy(self)
+        pos.n += 1
+        pos.to_play *= -1
+        pos.ko = None
+        pos.recent += (None,)
+        return pos
 
     def flip_playerturn(self):
-        return Position(
-            board=self.board * -1,
-            n=self.n,
-            komi=-self.komi,
-            caps=(self.caps[1], self.caps[0]),
-            groups=(self.groups[1], self.groups[0]),
-            ko=self.ko,
-            recent=self.recent,
-            player1turn=not self.player1turn,
-        )
+        pos = copy.deepcopy(self)
+        pos.ko = None
+        pos.to_play *= -1
+        return pos
 
-    def play_move(self, c):
+    def get_liberties(self):
+        return np.copy(self.lib_tracker.liberty_cache)
+
+    def play_move(self, color, c):
         # Obeys CGOS Rules of Play. In short:
         # No suicides
         # Chinese/area scoring
@@ -236,68 +315,44 @@ class Position(namedtuple('Position', 'board n komi caps groups ko recent player
         # actually play the move and see if any issues arise.
         # Thus, there is no "is_legal(self, move)" or "get_legal_moves(self)".
         # You can only play the move and check if the return value is None.
+        pos = copy.deepcopy(self)
         if c is None:
-            return self.pass_move()
-        if c == self.ko:
-            return None
-        if self.board[c] != EMPTY:
-            return None
+            pos.pass_move()
+            return pos
+        if c == pos.ko:
+            raise IllegalMove
+        if pos.board[c] != EMPTY:
+            raise IllegalMove
 
-        # Convention: B's stone is played. All B/W groups continue to be
-        # referred to as B and W. At the end, the return position is flipped.
-        B_groups, W_groups = self.groups
+        place_stones(pos.board, color, [c])
+        captured_stones = pos.lib_tracker.add_stone(color, c)
+        place_stones(pos.board, EMPTY, captured_stones)
 
-        working_board = place_stone(self.board, BLACK, c)
-        new_B_groups, new_W_groups = update_groups(working_board, B_groups, W_groups, c)
+        opp_color = color * -1
 
-        # process W's captures first, then your own suicides.
-        # As stones are removed, liberty counts become inaccurate.
-        W_captured = set()
-        final_W_groups = []
-        for group in new_W_groups:
-            if not group.liberties:
-                W_captured |= group.stones
-                capture_stones(working_board, group.stones)
-            else:
-                final_W_groups.append(group)
-
-        if W_captured:
-            # recalculate liberties for groups adjacent to a captured W group
-            coords_with_updates = find_neighbors(BLACK, working_board, W_captured)
-            final_B_groups = [g if not (g.stones & coords_with_updates)
-                else Group(stones=g.stones, liberties=find_liberties(working_board, g.stones))
-                for g in new_B_groups]
+        if len(captured_stones) == 1 and is_koish(self.board, c) == opp_color:
+            new_ko = list(captured_stones)[0]
         else:
-            # Check for suicide. Can only happen if there were no captures.
-            if not all(g.liberties for g in new_B_groups):
-                return None
-            final_B_groups = new_B_groups
+            new_ko = None
 
-
-        if len(W_captured) == 1 and is_koish(self.board, c) == WHITE:
-            ko = list(W_captured)[0]
+        if pos.to_play == BLACK:
+            new_caps = (pos.caps[0] + len(captured_stones), pos.caps[1])
         else:
-            ko = None
+            new_caps = (pos.caps[0], pos.caps[1] + len(captured_stones))
 
-        return Position(
-            board=working_board * -1,
-            n=self.n + 1,
-            komi=-self.komi,
-            caps=(self.caps[1], self.caps[0] + len(W_captured)),
-            groups=(final_W_groups, final_B_groups),
-            ko=ko,
-            recent=self.recent + (c,),
-            player1turn=not self.player1turn,
-        )
+        pos.n += 1
+        pos.caps = new_caps
+        pos.ko = new_ko
+        pos.recent += (c,)
+        pos.to_play *= -1
+        return pos
 
     def score(self):
-        'Returns score from player 1 perspective'
         working_board = np.copy(self.board)
         while EMPTY in working_board:
             unassigned_spaces = np.where(working_board == EMPTY)
             c = unassigned_spaces[0][0], unassigned_spaces[1][0]
-            territory = flood_fill(working_board, c)
-            borders = set(itertools.chain(*(NEIGHBORS[t] for t in territory)))
+            territory, borders = find_reached(working_board, c)
             border_colors = set(working_board[b] for b in borders)
             X_border = BLACK in border_colors
             O_border = WHITE in border_colors
@@ -307,14 +362,8 @@ class Position(namedtuple('Position', 'board n komi caps groups ko recent player
                 territory_color = WHITE
             else:
                 territory_color = UNKNOWN # dame, or seki
-            working_board[working_board == FILL] = territory_color
+            place_stones(working_board, territory_color, territory)
 
-        score_B_perspective = np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
-        if self.player1turn:
-            score = score_B_perspective
-        else:
-            score = -score_B_perspective
-
-        return score
+        return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
 
 set_board_size(19)

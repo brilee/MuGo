@@ -1,5 +1,7 @@
 import go
 import sgf_wrapper
+import unittest
+
 from utils import parse_kgs_coords as pc
 from test_utils import GoPositionTestCase, load_board
 
@@ -26,17 +28,16 @@ class TestSgfWrapper(GoPositionTestCase):
             ..XX.....
             .........
             .........
-        ''', player1turn=False)
+        ''')
         final_position = go.Position(
-            board=final_board,
+            final_board,
             n=2,
             komi=5.5,
             caps=(0, 0),
-            groups=go.deduce_groups(final_board),
-            ko=None,
             recent=(pc('E5'), pc('D3')),
-            player1turn=False,
+            to_play=go.WHITE,
         )
+
         sgf = sgf_wrapper.SgfWrapper(JAPANESE_HANDICAP_SGF)
         positions_w_context = list(sgf.get_main_branch())
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
@@ -52,19 +53,21 @@ class TestSgfWrapper(GoPositionTestCase):
             X.XOOXXX.
             XXXO.OOX.
             .XOOX.O..
-        ''', player1turn=False)
+        ''')
         final_position = go.Position(
-            board=final_board,
+            final_board,
             n=50,
             komi=5.5,
-            caps=(2, 7),
-            groups=go.deduce_groups(final_board),
+            caps=(7, 2),
             ko=None,
             recent=(pc('E9'), pc('F9')),
-            player1turn=False,
+            to_play=go.WHITE
         )
         sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
         positions_w_context = list(sgf.get_main_branch())
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
         self.assertFalse(positions_w_context[-1].is_usable())
         self.assertTrue(positions_w_context[-2].is_usable())
+
+if __name__ == '__main__':
+    unittest.main()
