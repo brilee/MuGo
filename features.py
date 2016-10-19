@@ -17,7 +17,6 @@ Zeros                   1 Constant plane of 0s
 All features with 8 planes are 1-hot encoded, with plane i marked with 1 
 only if the feature was equal to i. Any features >= 8 would be marked as 8.
 '''
-import itertools
 
 import numpy as np
 import go
@@ -26,7 +25,7 @@ import go
 P = 8
 
 def make_onehot(feature, planes):
-    onehot_features = np.zeros(feature.shape + (planes,), dtype=np.float32)
+    onehot_features = np.zeros(feature.shape + (planes,), dtype=np.uint8)
     for i in range(planes - 1):
         onehot_features[:, :, i] = (feature == i+1)
     onehot_features[:, :, planes-1] = (feature >= planes)
@@ -41,7 +40,7 @@ def planes(num_planes):
 @planes(3)
 def stone_color_feature(position):
     board = position.board
-    features = np.zeros([go.N, go.N, 3], dtype=np.float32)
+    features = np.zeros([go.N, go.N, 3], dtype=np.uint8)
     if position.to_play == go.BLACK:
         features[board == go.BLACK, 0] = 1
         features[board == go.WHITE, 1] = 1
@@ -54,11 +53,11 @@ def stone_color_feature(position):
 
 @planes(1)
 def ones_feature(position):
-    return np.ones([go.N, go.N, 1], dtype=np.float32)
+    return np.ones([go.N, go.N, 1], dtype=np.uint8)
 
 @planes(P)
 def recent_move_feature(position):
-    onehot_features = np.zeros([go.N, go.N, P], dtype=np.float32)
+    onehot_features = np.zeros([go.N, go.N, P], dtype=np.uint8)
     for i, move in enumerate(reversed(position.recent[-P:])):
         if move is not None:
             onehot_features[move[0], move[1], i] = 1
@@ -70,7 +69,7 @@ def liberty_feature(position):
 
 @planes(P)
 def would_capture_feature(position):
-    features = np.zeros([go.N, go.N], dtype=np.float32)
+    features = np.zeros([go.N, go.N], dtype=np.uint8)
     for g in position.lib_tracker.groups.values():
         if g.color == position.to_play:
             continue

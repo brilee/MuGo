@@ -59,7 +59,7 @@ def get_positions_from_sgf(file):
 
 def extract_features(positions):
     num_positions = len(positions)
-    output = np.zeros([num_positions, go.N, go.N, DEFAULT_FEATURES.planes], dtype=np.float32)
+    output = np.zeros([num_positions, go.N, go.N, DEFAULT_FEATURES.planes], dtype=np.uint8)
     for i, pos in enumerate(positions):
         output[i] = DEFAULT_FEATURES.extract(pos)
     return output
@@ -111,8 +111,8 @@ class DataSet(object):
 
     def write(self, filename):
         header_bytes = struct.pack(CHUNK_HEADER_FORMAT, self.data_size, self.board_size, self.input_planes, self.is_test)
-        position_bytes = np.packbits(self.pos_features == 1).tostring()
-        next_move_bytes = np.packbits(self.next_moves == 1).tostring()
+        position_bytes = np.packbits(self.pos_features).tostring()
+        next_move_bytes = np.packbits(self.next_moves).tostring()
         with gzip.open(filename, "wb", compresslevel=6) as f:
             f.write(header_bytes)
             f.write(position_bytes)
