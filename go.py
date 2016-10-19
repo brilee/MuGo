@@ -122,7 +122,7 @@ class LibertyTracker():
 
         lib_tracker.max_group_id = curr_group_id
 
-        liberty_counts = np.zeros([N, N])
+        liberty_counts = np.zeros([N, N], dtype=np.uint8)
         for group in lib_tracker.groups.values():
             num_libs = len(group.liberties)
             for s in group.stones:
