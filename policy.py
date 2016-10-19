@@ -88,7 +88,10 @@ class PolicyNetwork(object):
 
         log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
 
-        train_step = tf.train.GradientDescentOptimizer(1e-3).minimize(log_likelihood_cost, global_step=global_step)
+        # The step size was initialized to 0.003 and was halved every 80 million training steps
+        _learning_rate = tf.train.exponential_decay(3e-3, global_step,
+                                           8e7, 0.5)
+        train_step = tf.train.GradientDescentOptimizer(_learning_rate).minimize(log_likelihood_cost, global_step=global_step)
         was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
