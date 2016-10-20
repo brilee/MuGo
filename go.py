@@ -3,9 +3,6 @@ A board is a NxN numpy array.
 A Coordinate is a tuple index into the board.
 A Move is a (Coordinate c | None).
 
-play_move and all supporting functions are mutating.
-Board must be explicitly copied to preserve a copy of current state.
-
 (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
 '''
 from collections import namedtuple
@@ -137,7 +134,7 @@ class LibertyTracker():
         # liberty_cache: a NxN numpy array of liberty counts
         self.group_index = group_index if group_index is not None else -np.ones([N, N], dtype=np.int16)
         self.groups = groups or {}
-        self.liberty_cache = liberty_cache if liberty_cache is not None else np.zeros([N, N], dtype=np.int8)
+        self.liberty_cache = liberty_cache if liberty_cache is not None else np.zeros([N, N], dtype=np.uint8)
         self.max_group_id = max_group_id
 
     def __deepcopy__(self, memodict={}):
@@ -287,24 +284,24 @@ class Position():
         details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n, *captures)
         return annotated_board + details
 
-    def pass_move(self):
-        pos = copy.deepcopy(self)
+    def pass_move(self, mutate=False):
+        pos = self if mutate else copy.deepcopy(self)
         pos.n += 1
         pos.to_play *= -1
         pos.ko = None
         pos.recent += (None,)
         return pos
 
-    def flip_playerturn(self):
-        pos = copy.deepcopy(self)
+    def flip_playerturn(self, mutate=False):
+        pos = self if mutate else copy.deepcopy(self)
         pos.ko = None
         pos.to_play *= -1
         return pos
 
     def get_liberties(self):
-        return np.copy(self.lib_tracker.liberty_cache)
+        return self.lib_tracker.liberty_cache
 
-    def play_move(self, color, c):
+    def play_move(self, color, c, mutate=False):
         # Obeys CGOS Rules of Play. In short:
         # No suicides
         # Chinese/area scoring
@@ -315,9 +312,9 @@ class Position():
         # actually play the move and see if any issues arise.
         # Thus, there is no "is_legal(self, move)" or "get_legal_moves(self)".
         # You can only play the move and check if the return value is None.
-        pos = copy.deepcopy(self)
+        pos = self if mutate else copy.deepcopy(self)
         if c is None:
-            pos.pass_move()
+            pos.pass_move(mutate=mutate)
             return pos
         if c == pos.ko:
             raise IllegalMove

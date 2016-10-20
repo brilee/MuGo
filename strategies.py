@@ -30,7 +30,7 @@ class GtpInterface(object):
     def accomodate_out_of_turn(self, color):
         player1turn = (color == gtp.BLACK)
         if player1turn != self.position.player1turn:
-            self.position = self.position.flip_playerturn()
+            self.position = self.position.flip_playerturn(mutate=True)
 
     def make_move(self, color, vertex):
         coords = utils.parse_pygtp_coords(vertex)
@@ -201,7 +201,7 @@ class MCTS(GtpInterface):
         for _, move in move_probs:
             if go.is_eye(position.board, move):
                 continue
-            candidate_pos = position.play_move(move)
+            candidate_pos = position.play_move(move, mutate=True)
             if candidate_pos is not None:
                 return candidate_pos
-        return position.pass_move()
+        return position.pass_move(mutate=True)

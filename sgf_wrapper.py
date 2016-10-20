@@ -37,10 +37,10 @@ def handle_node(pos, node):
     # If B/W props are not present, then there is no move. But if it is present and equal to the empty string, then the move was a pass.
     elif 'B' in props:
         black_move = pc(props.get('B', [''])[0])
-        return pos.play_move(go.BLACK, black_move)
+        return pos.play_move(go.BLACK, black_move, mutate=True)
     elif 'W' in props:
         white_move = pc(props.get('W', [''])[0])
-        return pos.play_move(go.WHITE, white_move)
+        return pos.play_move(go.WHITE, white_move, mutate=True)
     else:
         return pos
 
@@ -65,7 +65,7 @@ def maybe_correct_next(pos, next_node):
         return pos
     if (('B' in next_node.properties and not pos.to_play == go.BLACK) or
         ('W' in next_node.properties and not pos.to_play == go.WHITE)):
-        pos = pos.flip_playerturn()
+        pos = pos.flip_playerturn(mutate=True)
     return pos
 
 class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
