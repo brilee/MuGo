@@ -1,5 +1,7 @@
+import numpy as np
 import os
 from test_utils import GoPositionTestCase
+import go
 import load_data_sets
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -26,3 +28,13 @@ class TestDataSets(GoPositionTestCase):
         self.assertEqual(dataset.next_moves.shape, recovered.next_moves.shape)
         self.assertEqualNPArray(dataset.next_moves, recovered.next_moves)
         self.assertEqualNPArray(dataset.pos_features, recovered.pos_features)
+
+class TestDataSetHelpers(GoPositionTestCase):
+    def test_onehot(self):
+        go.set_board_size(9)
+        coords = [(1, 2), (3, 4)]
+        expected = np.zeros([2, 81], dtype=np.uint8)
+        expected[0, 11] = 1
+        expected[1, 31] = 1
+        onehot = load_data_sets.make_onehot(coords)
+        self.assertEqualNPArray(onehot, expected)

@@ -1,3 +1,6 @@
+from collections import defaultdict
+import time
+import functools, operator
 import gtp
 import go
 
@@ -40,3 +43,21 @@ def unparse_pygtp_coords(c):
     if c is None:
         return gtp.PASS
     return c[1] + 1, go.N - c[0]
+
+def product(numbers):
+    return functools.reduce(operator.mul, numbers)
+
+
+class timer(object):
+    all_times = defaultdict(float)
+    def __init__(self, label):
+        self.label = label
+    def __enter__(self):
+        self.tick = time.time()
+    def __exit__(self, type, value, traceback):
+        self.tock = time.time()
+        self.all_times[self.label] += self.tock - self.tick
+    @classmethod
+    def print_times(cls):
+        for k, v in cls.all_times.items():
+            print("%s: %.3f" % (k, v))

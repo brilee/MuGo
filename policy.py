@@ -51,15 +51,12 @@ class PolicyNetwork(object):
         y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
 
         #convenience functions for initializing weights and biases
-        # http://neuralnetworksanddeeplearning.com/chap3.html#weight_initialization
-        def _product(numbers):
-            return functools.reduce(operator.mul, numbers)
-
         def _weight_variable(shape, name):
             # If shape is [5, 5, 20, 32], then each of the 32 output planes
             # has 5 * 5 * 20 inputs.
-            number_inputs_added = _product(shape[:-1])
+            number_inputs_added = utils.product(shape[:-1])
             stddev = 1 / math.sqrt(number_inputs_added)
+            # http://neuralnetworksanddeeplearning.com/chap3.html#weight_initialization
             return tf.Variable(tf.truncated_normal(shape, stddev=stddev), name=name)
 
         def _conv2d(x, W):

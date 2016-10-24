@@ -20,15 +20,21 @@ only if the feature was equal to i. Any features >= 8 would be marked as 8.
 
 import numpy as np
 import go
+from utils import product
 
 # Resolution/truncation limit for one-hot features
 P = 8
 
 def make_onehot(feature, planes):
     onehot_features = np.zeros(feature.shape + (planes,), dtype=np.uint8)
-    for i in range(planes - 1):
-        onehot_features[:, :, i] = (feature == i+1)
-    onehot_features[:, :, planes-1] = (feature >= planes)
+    capped = np.minimum(feature, planes)
+    onehot_index_offsets = np.arange(0, product(onehot_features.shape), planes) + capped.ravel()
+    # A 0 is encoded as [0,0,0,0], not [1,0,0,0], so we'll
+    # filter out any offsets that are a multiple of $planes
+    # A 1 is encoded as [1,0,0,0], not [0,1,0,0], so subtract 1 from offsets
+    nonzero_elements = (capped != 0).ravel()
+    nonzero_index_offsets = onehot_index_offsets[nonzero_elements] - 1
+    onehot_features.ravel()[nonzero_index_offsets] = 1
     return onehot_features
 
 def planes(num_planes):

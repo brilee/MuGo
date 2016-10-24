@@ -34,13 +34,12 @@ def iter_chunks(chunk_size, iterator):
         else:
             break
 
-def make_onehot(dense_labels, num_classes):
-    dense_labels = np.fromiter(dense_labels, dtype=np.int16)
-    num_labels = dense_labels.shape[0]
-    index_offset = np.arange(num_labels) * num_classes
-    labels_one_hot = np.zeros((num_labels, num_classes), dtype=np.int16)
-    labels_one_hot.flat[index_offset + dense_labels.ravel()] = 1
-    return labels_one_hot
+def make_onehot(coords):
+    num_positions = len(coords)
+    output = np.zeros([num_positions, go.N ** 2], dtype=np.uint8)
+    for i, coord in enumerate(coords):
+        output[i, utils.flatten_coords(coord)] = 1
+    return output
 
 def find_sgf_files(*dataset_dirs):
     for dataset_dir in dataset_dirs:
@@ -106,7 +105,7 @@ class DataSet(object):
     def from_positions_w_context(positions_w_context, is_test=False):
         positions, next_moves, results = zip(*positions_w_context)
         extracted_features = extract_features(positions)
-        encoded_moves = make_onehot(map(utils.flatten_coords, next_moves), go.N ** 2)
+        encoded_moves = make_onehot(next_moves)
         return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
 
     def write(self, filename):
