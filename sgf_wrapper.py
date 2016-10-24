@@ -37,10 +37,10 @@ def handle_node(pos, node):
     # If B/W props are not present, then there is no move. But if it is present and equal to the empty string, then the move was a pass.
     elif 'B' in props:
         black_move = pc(props.get('B', [''])[0])
-        return pos.play_move(go.BLACK, black_move, mutate=True)
+        return pos.play_move(go.BLACK, black_move)
     elif 'W' in props:
         white_move = pc(props.get('W', [''])[0])
-        return pos.play_move(go.WHITE, white_move, mutate=True)
+        return pos.play_move(go.WHITE, white_move)
     else:
         return pos
 
@@ -62,11 +62,10 @@ def get_next_move(node):
 
 def maybe_correct_next(pos, next_node):
     if next_node is None:
-        return pos
+        return
     if (('B' in next_node.properties and not pos.to_play == go.BLACK) or
         ('W' in next_node.properties and not pos.to_play == go.WHITE)):
-        pos = pos.flip_playerturn(mutate=True)
-    return pos
+        pos.flip_playerturn(mutate=True)
 
 class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
     pass
@@ -97,7 +96,7 @@ class SgfWrapper(object):
         current_node = self.game.root
         while pos is not None and current_node is not None:
             pos = handle_node(pos, current_node)
-            pos = maybe_correct_next(pos, current_node.next)
+            maybe_correct_next(pos, current_node.next)
             next_move = get_next_move(current_node)
             yield PositionWithContext(pos, next_move, self.metadata)
             current_node = current_node.next
