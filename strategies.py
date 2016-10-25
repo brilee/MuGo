@@ -2,11 +2,23 @@ import math
 import random
 import sys
 import time
-
+import numpy as np
 import gtp
 
 import go
 import utils
+
+def sorted_moves(probability_array):
+    coords = [(a, b) for a in range(go.N) for b in range(go.N)]
+    return sorted(coords, key=lambda c: probability_array[c], reverse=True)
+
+def translate_gtp_colors(gtp_color):
+    if gtp_color == gtp.BLACK:
+        return go.BLACK
+    elif gtp_color == gtp.WHITE:
+        return go.WHITE
+    else:
+        return go.EMPTY
 
 class GtpInterface(object):
     def __init__(self):
@@ -28,14 +40,13 @@ class GtpInterface(object):
         self.position = go.Position(komi=self.komi)
 
     def accomodate_out_of_turn(self, color):
-        player1turn = (color == gtp.BLACK)
-        if player1turn != self.position.player1turn:
-            self.position = self.position.flip_playerturn(mutate=True)
+        if not translate_gtp_colors(color) == self.position.to_play:
+            self.position.flip_playerturn(mutate=True)
 
     def make_move(self, color, vertex):
         coords = utils.parse_pygtp_coords(vertex)
         self.accomodate_out_of_turn(color)
-        self.position = self.position.play_move(coords)
+        self.position = self.position.play_move(translate_gtp_colors(color), coords)
         return self.position is not None
 
     def get_move(self, color):
@@ -51,8 +62,11 @@ class RandomPlayer(GtpInterface):
         possible_moves = go.ALL_COORDS
         random.shuffle(possible_moves)
         for move in possible_moves:
-            if position.play_move(move) is not None:
+            try:
+                position.play_move(position.to_play, move)
                 return move
+            except go.IllegalMove:
+                pass
         return None
 
 class PolicyNetworkBestMovePlayer(GtpInterface):
@@ -65,9 +79,12 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             # Pass if the opponent passes
             return None
         move_probabilities = self.policy_network.run(position)
-        for prob, move in move_probabilities:
-            if position.play_move(move) is not None:
+        for move in sorted_moves(move_probabilities):
+            try:
+                position.play_move(position.to_play, move)
                 return move
+            except go.IllegalMove:
+                pass
         return None
 
 # Exploration constant
@@ -118,7 +135,7 @@ class MCTSNode():
 
     def expand(self, move_probabilities):
         self.children = {move: MCTSNode(self, move, prob)
-            for prob, move in move_probabilities}
+            for move, prob in np.ndenumerate(move_probabilities)}
         # Pass should always be an option! Say, for example, seki.
         self.children[None] = MCTSNode(self, None, 0)
 
@@ -198,7 +215,7 @@ class MCTS(GtpInterface):
         return current.score() * perspective
 
     def play_valid_move(self, position, move_probs):
-        for _, move in move_probs:
+        for move in sorted_moves(move_probs):
             if go.is_eye(position.board, move):
                 continue
             candidate_pos = position.play_move(move, mutate=True)

@@ -20,9 +20,7 @@ kernel size 1 x 1 with stride 1, and hidden layer 14 is a fully connected
 linear layer with 256 rectifier units. The output layer is a fully connected
 linear layer with a single tanh unit.
 '''
-import functools
 import math
-import operator
 import os
 import tensorflow as tf
 
@@ -149,8 +147,7 @@ class PolicyNetwork(object):
         'Return a sorted list of (probability, move) tuples'
         processed_position = features.DEFAULT_FEATURES.extract(position)
         probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
-        move_probs = [(prob, utils.unflatten_coords(i)) for i, prob in enumerate(probabilities)]
-        return sorted(move_probs, reverse=True)
+        return probabilities.reshape([go.N, go.N])
 
     def check_accuracy(self, test_data, batch_size=128):
         num_minibatches = test_data.data_size // batch_size
