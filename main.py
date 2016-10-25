@@ -17,11 +17,11 @@ def gtp(strategy, read_file=None):
     if strategy == 'random':
         instance = RandomPlayer()
     elif strategy == 'policy':
-        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes)
+        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
         policy_network.initialize_variables(read_file)
         instance = PolicyNetworkBestMovePlayer(policy_network)
     elif strategy == 'mcts':
-        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes)
+        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
         policy_network.initialize_variables(read_file)
         instance = MCTS(policy_network)
     else:
@@ -50,7 +50,7 @@ def preprocess(*data_sets, processed_dir="processed_data"):
 
     process_raw_data(*data_sets, processed_dir=processed_dir)
 
-def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None, checkpoint_freq=1000):
+def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None, checkpoint_freq=10000):
     test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))
     train_chunk_files = [os.path.join(processed_dir, fname) 
         for fname in os.listdir(processed_dir)

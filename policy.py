@@ -31,7 +31,7 @@ import utils
 EPSILON = 1e-35
 
 class PolicyNetwork(object):
-    def __init__(self, num_input_planes, k=32, num_int_conv_layers=3):
+    def __init__(self, num_input_planes, k=32, num_int_conv_layers=3, use_cpu=False):
         self.num_input_planes = num_input_planes
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
@@ -40,7 +40,11 @@ class PolicyNetwork(object):
         self.test_stats = StatisticsCollector()
         self.training_stats = StatisticsCollector()
         self.session = tf.Session()
-        self.set_up_network()
+        if use_cpu:
+            with tf.device("/cpu:0"):
+                self.set_up_network()
+        else:
+            self.set_up_network()
 
     def set_up_network(self):
         # a global_step variable allows epoch counts to persist through multiple training sessions
