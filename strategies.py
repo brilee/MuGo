@@ -240,7 +240,7 @@ class MCTS(GtpInterface):
 
     def play_valid_move(self, position, move_probs):
         for move in sorted_moves(move_probs):
-            if go.is_eye(position.board, move):
+            if go.is_eyeish(position.board, move):
                 continue
             candidate_pos = position.play_move(move, mutate=True)
             if candidate_pos is not None:

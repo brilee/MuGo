@@ -45,7 +45,7 @@ class TestEyeHandling(GoPositionTestCase):
         self.assertEqual(go.is_koish(TEST_BOARD, pc('B9')), None)
         self.assertEqual(go.is_koish(TEST_BOARD, pc('E5')), None)
 
-    def test_is_eye(self):
+    def test_is_eyeish(self):
         board = load_board('''
             .XX...XXX
             X.X...X.X
@@ -57,15 +57,15 @@ class TestEyeHandling(GoPositionTestCase):
             .XO.X.O.O
             XXO.X.OO.
         ''')
-        B_eyes = pc_set('A9 B8 H8')
-        W_eyes = pc_set('H2 J1')
-        not_eyes = pc_set('A2 B3 J7 E5 J3')
+        B_eyes = pc_set('A2 A9 B8 J7 H8')
+        W_eyes = pc_set('H2 J1 J3')
+        not_eyes = pc_set('B3 E5')
         for be in B_eyes:
-            self.assertEqual(go.is_eye(board, be), BLACK)
+            self.assertEqual(go.is_eyeish(board, be), BLACK)
         for we in W_eyes:
-            self.assertEqual(go.is_eye(board, we), WHITE)
+            self.assertEqual(go.is_eyeish(board, we), WHITE)
         for ne in not_eyes:
-            self.assertEqual(go.is_eye(board, ne), None)
+            self.assertEqual(go.is_eyeish(board, ne), None)
 
 class TestLibertyTracker(unittest.TestCase):
     def test_lib_tracker_init(self):

@@ -71,7 +71,7 @@ def is_koish(board, c):
     else:
         return None
 
-def is_eye(board, c):
+def is_eyeish(board, c):
     'Check if c is an eye, for the purpose of restricting MC rollouts.'
     color = is_koish(board, c)
     if color is None:
@@ -81,7 +81,7 @@ def is_eye(board, c):
     if len(diagonals) < 4:
         diagonal_faults += 1
     for d in diagonals:
-        if not (board[d] == color or is_koish(board, d) == color):
+        if not board[d] in (color, EMPTY):
             diagonal_faults += 1
     if diagonal_faults > 1:
         return None
