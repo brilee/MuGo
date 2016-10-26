@@ -73,10 +73,9 @@ class RandomPlayer(GtpInterface):
 
 class PolicyNetworkBestMovePlayer(GtpInterface):
     def __init__(self, read_file):
-        super().__init__()
         self.policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
         self.read_file = read_file
-        self.refresh_network()
+        super().__init__()
 
     def clear(self):
         super().clear()
@@ -176,12 +175,11 @@ class MCTSNode():
 
 class MCTS(GtpInterface):
     def __init__(self, read_file, seconds_per_move=5):
-        super().__init__()
         self.seconds_per_move = seconds_per_move
         self.max_rollout_depth = go.N * go.N * 3
         self.policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
         self.read_file = read_file
-        self.refresh_network()
+        super().__init__()
 
     def clear(self):
         super().clear()

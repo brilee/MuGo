@@ -6,6 +6,8 @@ import re
 import sys
 import gtp as gtp_lib
 
+from policy import PolicyNetwork
+from features import DEFAULT_FEATURES
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, MCTS
 from load_data_sets import process_raw_data, DataSet
 
