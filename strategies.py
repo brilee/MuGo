@@ -93,6 +93,8 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             return None
         move_probabilities = self.policy_network.run(position)
         for move in sorted_moves(move_probabilities):
+            if go.is_eyeish(position.board, move):
+                continue
             try:
                 position.play_move(position.to_play, move)
                 return move
