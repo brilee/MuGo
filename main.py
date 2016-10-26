@@ -6,9 +6,7 @@ import re
 import sys
 import gtp as gtp_lib
 
-from features import DEFAULT_FEATURES
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, MCTS
-from policy import PolicyNetwork
 from load_data_sets import process_raw_data, DataSet
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
@@ -17,13 +15,9 @@ def gtp(strategy, read_file=None):
     if strategy == 'random':
         instance = RandomPlayer()
     elif strategy == 'policy':
-        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
-        policy_network.initialize_variables(read_file)
-        instance = PolicyNetworkBestMovePlayer(policy_network)
+        instance = PolicyNetworkBestMovePlayer(read_file)
     elif strategy == 'mcts':
-        policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
-        policy_network.initialize_variables(read_file)
-        instance = MCTS(policy_network)
+        instance = MCTS(read_file)
     else:
         sys.stderr.write("Unknown strategy")
         sys.exit()

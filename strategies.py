@@ -7,6 +7,8 @@ import gtp
 
 import go
 import utils
+from features import DEFAULT_FEATURES
+from policy import PolicyNetwork
 
 def sorted_moves(probability_array):
     coords = [(a, b) for a in range(go.N) for b in range(go.N)]
@@ -70,9 +72,20 @@ class RandomPlayer(GtpInterface):
         return None
 
 class PolicyNetworkBestMovePlayer(GtpInterface):
-    def __init__(self, policy_network):
+    def __init__(self, read_file):
         super().__init__()
-        self.policy_network = policy_network
+        self.policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
+        self.read_file = read_file
+        self.refresh_network()
+
+    def clear(self):
+        super().clear()
+        self.refresh_network()
+
+    def refresh_network(self):
+        # Ensure that the player is using the latest version of the network
+        # so that the network can be continually trained even as it's playing.
+        self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
         if position.recent and position.n > 100 and position.recent[-1] == None:
@@ -160,11 +173,22 @@ class MCTSNode():
 
 
 class MCTS(GtpInterface):
-    def __init__(self, policy_network, seconds_per_move=5):
+    def __init__(self, read_file, seconds_per_move=5):
         super().__init__()
-        self.policy_network = policy_network
         self.seconds_per_move = seconds_per_move
         self.max_rollout_depth = go.N * go.N * 3
+        self.policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
+        self.read_file = read_file
+        self.refresh_network()
+
+    def clear(self):
+        super().clear()
+        self.refresh_network()
+
+    def refresh_network(self):
+        # Ensure that the player is using the latest version of the network
+        # so that the network can be continually trained even as it's playing.
+        self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
         if position.caps[0] + 50 < position.caps[1]:
