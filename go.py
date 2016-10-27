@@ -88,6 +88,16 @@ def is_eyeish(board, c):
     else:
         return color
 
+def is_reasonable(position, move):
+    'Checks that a move is both legal and not self-eye filling'
+    if is_eyeish(position.board, move) == position.to_play:
+        return False
+    try:
+        position.play_move(position.to_play, move)
+        return True
+    except IllegalMove:
+        return False
+
 class Group(namedtuple('Group', ['id', 'stones', 'liberties', 'color'])):
     '''
     stones: a set of Coordinates belonging to this group

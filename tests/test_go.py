@@ -67,6 +67,30 @@ class TestEyeHandling(GoPositionTestCase):
         for ne in not_eyes:
             self.assertEqual(go.is_eyeish(board, ne), None)
 
+    def test_is_reasonable(self):
+        board = load_board('''
+            .XXOOOXXX
+            X.XO.OX.X
+            XXXOOOXX.
+            ...XXX..X
+            XXXX.....
+            OOOX....O
+            X.OXX.OO.
+            .XO.X.O.O
+            XXO.X.OO.
+        ''')
+        position = Position(
+            board=board,
+            to_play=BLACK,
+        )
+        reasonable_moves = pc_set('E8 B3')
+        unreasonable_moves = pc_set('A9 B8 H8 J7 A2 J3 H2 J1')
+        for move in reasonable_moves:
+            self.assertTrue(go.is_reasonable(position, move))
+        for move in unreasonable_moves:
+            self.assertFalse(go.is_reasonable(position, move))
+
+
 class TestLibertyTracker(unittest.TestCase):
     def test_lib_tracker_init(self):
         board = load_board('X........' + EMPTY_ROW * 8)
