@@ -61,11 +61,11 @@ class TestEyeHandling(GoPositionTestCase):
         W_eyes = pc_set('H2 J1 J3')
         not_eyes = pc_set('B3 E5')
         for be in B_eyes:
-            self.assertEqual(go.is_eyeish(board, be), BLACK)
+            self.assertEqual(go.is_eyeish(board, be), BLACK, str(be))
         for we in W_eyes:
-            self.assertEqual(go.is_eyeish(board, we), WHITE)
+            self.assertEqual(go.is_eyeish(board, we), WHITE, str(we))
         for ne in not_eyes:
-            self.assertEqual(go.is_eyeish(board, ne), None)
+            self.assertEqual(go.is_eyeish(board, ne), None, str(ne))
 
     def test_is_reasonable(self):
         board = load_board('''
@@ -86,7 +86,7 @@ class TestEyeHandling(GoPositionTestCase):
         reasonable_moves = pc_set('E8 B3')
         unreasonable_moves = pc_set('A9 B8 H8 J7 A2 J3 H2 J1')
         for move in reasonable_moves:
-            self.assertTrue(go.is_reasonable(position, move))
+            self.assertTrue(go.is_reasonable(position, move), str(move))
         for move in unreasonable_moves:
             self.assertFalse(go.is_reasonable(position, move), str(move))
 
@@ -177,7 +177,7 @@ class TestLibertyTracker(unittest.TestCase):
 
         liberty_cache = lib_tracker.liberty_cache
         for stone in sole_group.stones:
-            self.assertEqual(liberty_cache[stone], 6)
+            self.assertEqual(liberty_cache[stone], 6, str(stone))
 
     def test_capture_stone(self):
         board = load_board('''
@@ -221,15 +221,15 @@ class TestLibertyTracker(unittest.TestCase):
 
         liberty_cache = lib_tracker.liberty_cache
         for stone in top_group.stones:
-            self.assertEqual(liberty_cache[stone], 4)
+            self.assertEqual(liberty_cache[stone], 4, str(stone))
         for stone in left_group.stones:
-            self.assertEqual(liberty_cache[stone], 3)
+            self.assertEqual(liberty_cache[stone], 3, str(stone))
         for stone in right_group.stones:
-            self.assertEqual(liberty_cache[stone], 4)
+            self.assertEqual(liberty_cache[stone], 4, str(stone))
         for stone in bottom_group.stones:
-            self.assertEqual(liberty_cache[stone], 6)
+            self.assertEqual(liberty_cache[stone], 6, str(stone))
         for stone in captured:
-            self.assertEqual(liberty_cache[stone], 0)
+            self.assertEqual(liberty_cache[stone], 0, str(stone))
 
     def test_capture_multiple_groups(self):
         board = load_board('''
@@ -252,9 +252,9 @@ class TestLibertyTracker(unittest.TestCase):
 
         liberty_cache = lib_tracker.liberty_cache
         for stone in corner_stone.stones:
-            self.assertEqual(liberty_cache[stone], 2)
+            self.assertEqual(liberty_cache[stone], 2, str(stone))
         for stone in surrounding_stones.stones:
-            self.assertEqual(liberty_cache[stone], 7)
+            self.assertEqual(liberty_cache[stone], 7, str(stone))
 
 
     def test_same_friendly_group_neighboring_twice(self):
