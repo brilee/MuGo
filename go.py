@@ -88,6 +88,25 @@ def is_eyeish(board, c):
     else:
         return color
 
+def is_suicidal(position, move):
+    potential_libs = set()
+    for n in NEIGHBORS[move]:
+        neighbor_group_id = position.lib_tracker.group_index[n]
+        if neighbor_group_id == MISSING_GROUP_ID:
+            # at least one liberty after playing here, so not a suicide
+            return False
+        neighbor_group = position.lib_tracker.groups[neighbor_group_id]
+        if neighbor_group.color == position.to_play:
+            potential_libs |= neighbor_group.liberties
+        elif len(neighbor_group.liberties) == 1:
+            # would capture an opponent group if they only had one lib.
+            return False
+    # it's possible to suicide by connecting several friendly groups
+    # each of which had one liberty.
+    potential_libs -= set([move])
+    return not potential_libs
+
+
 def is_reasonable(position, move):
     'Checks that a move is both legal and not self-eye filling'
     if is_eyeish(position.board, move) == position.to_play:

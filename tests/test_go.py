@@ -88,7 +88,32 @@ class TestEyeHandling(GoPositionTestCase):
         for move in reasonable_moves:
             self.assertTrue(go.is_reasonable(position, move))
         for move in unreasonable_moves:
-            self.assertFalse(go.is_reasonable(position, move))
+            self.assertFalse(go.is_reasonable(position, move), str(move))
+
+    def test_is_suicidal(self):
+        board = load_board('''
+            ...O.O...
+            ....O....
+            XO.....O.
+            OXO...OXO
+            O.XO.OX.O
+            OXO...OOX
+            XO.......
+            ......XXO
+            .....XOO.
+        ''')
+        position = Position(
+            board=board,
+            to_play=BLACK,
+        )
+        suicidal_moves = pc_set('E9 H5')
+        nonsuicidal_moves = pc_set('B5 J1 A9')
+        for move in suicidal_moves:
+            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
+            self.assertTrue(go.is_suicidal(position, move), str(move))
+        for move in nonsuicidal_moves:
+            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
+            self.assertFalse(go.is_suicidal(position, move), str(move))
 
 
 class TestLibertyTracker(unittest.TestCase):
