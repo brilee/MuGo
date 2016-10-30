@@ -67,55 +67,6 @@ class TestEyeHandling(GoPositionTestCase):
         for ne in not_eyes:
             self.assertEqual(go.is_eyeish(board, ne), None, str(ne))
 
-    def test_is_reasonable(self):
-        board = load_board('''
-            .XXOOOXXX
-            X.XO.OX.X
-            XXXOOOXX.
-            ...XXX..X
-            XXXX.....
-            OOOX....O
-            X.OXX.OO.
-            .XO.X.O.O
-            XXO.X.OO.
-        ''')
-        position = Position(
-            board=board,
-            to_play=BLACK,
-        )
-        reasonable_moves = pc_set('E8 B3')
-        unreasonable_moves = pc_set('A9 B8 H8 J7 A2 J3 H2 J1')
-        for move in reasonable_moves:
-            self.assertTrue(go.is_reasonable(position, move), str(move))
-        for move in unreasonable_moves:
-            self.assertFalse(go.is_reasonable(position, move), str(move))
-
-    def test_is_suicidal(self):
-        board = load_board('''
-            ...O.O...
-            ....O....
-            XO.....O.
-            OXO...OXO
-            O.XO.OX.O
-            OXO...OOX
-            XO.......
-            ......XXO
-            .....XOO.
-        ''')
-        position = Position(
-            board=board,
-            to_play=BLACK,
-        )
-        suicidal_moves = pc_set('E9 H5')
-        nonsuicidal_moves = pc_set('B5 J1 A9')
-        for move in suicidal_moves:
-            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
-            self.assertTrue(go.is_suicidal(position, move), str(move))
-        for move in nonsuicidal_moves:
-            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
-            self.assertFalse(go.is_suicidal(position, move), str(move))
-
-
 class TestLibertyTracker(unittest.TestCase):
     def test_lib_tracker_init(self):
         board = load_board('X........' + EMPTY_ROW * 8)
@@ -335,6 +286,31 @@ class TestPosition(GoPositionTestCase):
         )
         flip_position = start_position.flip_playerturn()
         self.assertEqualPositions(flip_position, expected_position)
+
+    def test_is_move_suicidal(self):
+        board = load_board('''
+            ...O.O...
+            ....O....
+            XO.....O.
+            OXO...OXO
+            O.XO.OX.O
+            OXO...OOX
+            XO.......
+            ......XXO
+            .....XOO.
+        ''')
+        position = Position(
+            board=board,
+            to_play=BLACK,
+        )
+        suicidal_moves = pc_set('E9 H5')
+        nonsuicidal_moves = pc_set('B5 J1 A9')
+        for move in suicidal_moves:
+            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
+            self.assertTrue(position.is_move_suicidal(move), str(move))
+        for move in nonsuicidal_moves:
+            assert(position.board[move] == go.EMPTY) #sanity check my coordinate input
+            self.assertFalse(position.is_move_suicidal(move), str(move))
 
     def test_legal_moves(self):
         board = load_board('''

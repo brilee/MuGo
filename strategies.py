@@ -22,6 +22,9 @@ def translate_gtp_colors(gtp_color):
     else:
         return go.EMPTY
 
+def is_move_reasonable(position, move):
+    return position.is_move_legal(move) and go.is_eyeish(position.board, move) != position.to_play
+
 class GtpInterface(object):
     def __init__(self):
         self.size = 9
@@ -61,14 +64,11 @@ class GtpInterface(object):
 
 class RandomPlayer(GtpInterface):
     def suggest_move(self, position):
-        possible_moves = go.ALL_COORDS
+        possible_moves = go.ALL_COORDS[:]
         random.shuffle(possible_moves)
         for move in possible_moves:
-            try:
-                position.play_move(position.to_play, move)
+            if is_move_reasonable(position, move):
                 return move
-            except go.IllegalMove:
-                pass
         return None
 
 class PolicyNetworkBestMovePlayer(GtpInterface):
@@ -92,13 +92,8 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             return None
         move_probabilities = self.policy_network.run(position)
         for move in sorted_moves(move_probabilities):
-            if go.is_eyeish(position.board, move):
-                continue
-            try:
-                position.play_move(position.to_play, move)
+            if go.is_reasonable(position, move):
                 return move
-            except go.IllegalMove:
-                pass
         return None
 
 # Exploration constant

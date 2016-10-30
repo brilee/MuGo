@@ -88,35 +88,6 @@ def is_eyeish(board, c):
     else:
         return color
 
-def is_suicidal(position, move):
-    potential_libs = set()
-    for n in NEIGHBORS[move]:
-        neighbor_group_id = position.lib_tracker.group_index[n]
-        if neighbor_group_id == MISSING_GROUP_ID:
-            # at least one liberty after playing here, so not a suicide
-            return False
-        neighbor_group = position.lib_tracker.groups[neighbor_group_id]
-        if neighbor_group.color == position.to_play:
-            potential_libs |= neighbor_group.liberties
-        elif len(neighbor_group.liberties) == 1:
-            # would capture an opponent group if they only had one lib.
-            return False
-    # it's possible to suicide by connecting several friendly groups
-    # each of which had one liberty.
-    potential_libs -= set([move])
-    return not potential_libs
-
-
-def is_reasonable(position, move):
-    'Checks that a move is both legal and not self-eye filling'
-    if is_eyeish(position.board, move) == position.to_play:
-        return False
-    try:
-        position.play_move(position.to_play, move)
-        return True
-    except IllegalMove:
-        return False
-
 class Group(namedtuple('Group', ['id', 'stones', 'liberties', 'color'])):
     '''
     stones: a set of Coordinates belonging to this group
@@ -313,6 +284,35 @@ class Position():
         details = "\nMove: {}. Captures X: {} O: {}\n".format(self.n, *captures)
         return annotated_board + details
 
+    def is_move_suicidal(self, move):
+        potential_libs = set()
+        for n in NEIGHBORS[move]:
+            neighbor_group_id = self.lib_tracker.group_index[n]
+            if neighbor_group_id == MISSING_GROUP_ID:
+                # at least one liberty after playing here, so not a suicide
+                return False
+            neighbor_group = self.lib_tracker.groups[neighbor_group_id]
+            if neighbor_group.color == self.to_play:
+                potential_libs |= neighbor_group.liberties
+            elif len(neighbor_group.liberties) == 1:
+                # would capture an opponent group if they only had one lib.
+                return False
+        # it's possible to suicide by connecting several friendly groups
+        # each of which had one liberty.
+        potential_libs -= set([move])
+        return not potential_libs
+
+    def is_move_legal(self, move):
+        'Checks that a move is on an empty space, not on ko, and not suicide'
+        if self.board[move] != EMPTY:
+            return False
+        if move == self.ko:
+            return False
+        if self.is_move_suicidal(move):
+            return False
+
+        return True
+
     def pass_move(self, mutate=False):
         pos = self if mutate else copy.deepcopy(self)
         pos.n += 1
@@ -336,19 +336,14 @@ class Position():
         # Chinese/area scoring
         # Positional superko (this is very crudely approximate at the moment.)
 
-        # Checking a move for legality is actually very expensive, because 
-        # the only way to reliably handle all suicide/capture situations is to
-        # actually play the move and see if any issues arise.
-        # Thus, there is no "is_legal(self, move)" or "get_legal_moves(self)".
-        # You can only play the move and check if the return value is None.
         pos = self if mutate else copy.deepcopy(self)
+
+        if not self.is_move_legal(c):
+            raise IllegalMove()
+
         if c is None:
-            pos.pass_move(mutate=mutate)
+            pos = pos.pass_move(mutate=mutate)
             return pos
-        if c == pos.ko:
-            raise IllegalMove
-        if pos.board[c] != EMPTY:
-            raise IllegalMove
 
         place_stones(pos.board, color, [c])
         captured_stones = pos.lib_tracker.add_stone(color, c)
