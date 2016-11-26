@@ -90,7 +90,7 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             return None
         move_probabilities = self.policy_network.run(position)
         for move in sorted_moves(move_probabilities):
-            if go.is_reasonable(position, move):
+            if is_move_reasonable(position, move):
                 return move
         return None
 
