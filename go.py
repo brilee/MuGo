@@ -390,4 +390,13 @@ class Position():
 
         return np.count_nonzero(working_board == BLACK) - np.count_nonzero(working_board == WHITE) - self.komi
 
+    def result(self):
+        score = self.score()
+        if score > 0:
+            return 'B+' + '%.1f' % score
+        elif score < 0:
+            return 'W+' + '%.1f' % abs(score)
+        else:
+            return 'DRAW'
+
 set_board_size(19)
