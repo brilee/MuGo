@@ -7,7 +7,7 @@ import sys
 
 from features import DEFAULT_FEATURES
 import go
-import sgf_wrapper
+from sgf_wrapper import replay_sgf
 import utils
 
 # Number of data points to store in a chunk on disk
@@ -51,8 +51,7 @@ def find_sgf_files(*dataset_dirs):
 
 def get_positions_from_sgf(file):
     with open(file) as f:
-        sgf = sgf_wrapper.SgfWrapper(f.read())
-        for position_w_context in sgf.get_main_branch():
+        for position_w_context in replay_sgf(f.read()):
             if position_w_context.is_usable():
                 yield position_w_context
 

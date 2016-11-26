@@ -15,6 +15,25 @@ from go import Position
 from utils import parse_sgf_coords as pc
 import sgf
 
+class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
+    pass
+
+class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata")):
+    '''
+    Wrapper around go.Position.
+    Stores a position, the move that came next, and the eventual result.
+    '''
+    def is_usable(self):
+        return all([
+            self.position is not None,
+            self.next_move is not None,
+            self.metadata.result != "Void",
+            self.metadata.handicap <= 4,
+        ])
+
+    def __str__(self):
+        return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
+
 def sgf_prop(value_list):
     'Converts raw sgf library output to sensible value'
     if value_list is None:
@@ -67,52 +86,29 @@ def maybe_correct_next(pos, next_node):
         ('W' in next_node.properties and not pos.to_play == go.WHITE)):
         pos.flip_playerturn(mutate=True)
 
-class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
-    pass
-
-class SgfWrapper(object):
+def replay_sgf(sgf_contents):
     '''
-    Wrapper for sgf files, exposing contents as go.Position instances
+    Wrapper for sgf files, exposing contents as position_w_context instances
     with open(filename) as f:
-        sgf = sgf_wrapper.SgfWrapper(f.read())
-        for position, move, result in sgf.get_main_branch():
-            print(position)
+        for position_w_context in replay_sgf(f.read()):
+            print(position_w_context.position)
     '''
+    collection = sgf.parse(sgf_contents)
+    game = collection.children[0]
+    props = game.root.properties
+    assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
+    komi = float(sgf_prop(props.get('KM')))
+    metadata = GameMetadata(
+        result=sgf_prop(props.get('RE')),
+        handicap=int(sgf_prop(props.get('HA', [0]))),
+        board_size=int(sgf_prop(props.get('SZ'))))
+    go.set_board_size(metadata.board_size)
 
-    def __init__(self, file_contents):
-        self.collection = sgf.parse(file_contents)
-        self.game = self.collection.children[0]
-        props = self.game.root.properties
-        assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
-        self.komi = float(sgf_prop(props.get('KM')))
-        self.metadata = GameMetadata(
-            result=sgf_prop(props.get('RE')),
-            handicap=int(sgf_prop(props.get('HA', [0]))),
-            board_size=int(sgf_prop(props.get('SZ'))))
-        go.set_board_size(self.metadata.board_size)
-
-    def get_main_branch(self):
-        pos = Position(komi=self.komi)
-        current_node = self.game.root
-        while pos is not None and current_node is not None:
-            pos = handle_node(pos, current_node)
-            maybe_correct_next(pos, current_node.next)
-            next_move = get_next_move(current_node)
-            yield PositionWithContext(pos, next_move, self.metadata)
-            current_node = current_node.next
-
-class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata")):
-    '''
-    Wrapper around go.Position.
-    Stores a position, the move that came next, and the eventual result.
-    '''
-    def is_usable(self):
-        return all([
-            self.position is not None,
-            self.next_move is not None,
-            self.metadata.result != "Void",
-            self.metadata.handicap <= 4,
-        ])
-
-    def __str__(self):
-        return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
+    pos = Position(komi=komi)
+    current_node = game.root
+    while pos is not None and current_node is not None:
+        pos = handle_node(pos, current_node)
+        maybe_correct_next(pos, current_node.next)
+        next_move = get_next_move(current_node)
+        yield PositionWithContext(pos, next_move, metadata)
+        current_node = current_node.next

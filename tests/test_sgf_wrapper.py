@@ -1,5 +1,5 @@
 import go
-import sgf_wrapper
+from sgf_wrapper import replay_sgf
 import unittest
 
 from utils import parse_kgs_coords as pc
@@ -12,10 +12,11 @@ CHINESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Chinese]SZ[9]HA
 
 class TestSgfWrapper(GoPositionTestCase):
     def test_sgf_props(self):
-        sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
-        self.assertEqual(sgf.metadata.result, 'B+39.50')
-        self.assertEqual(sgf.metadata.board_size, 9)
-        self.assertEqual(sgf.komi, 5.5)
+        sgf_replayer = replay_sgf(CHINESE_HANDICAP_SGF)
+        initial = next(sgf_replayer)
+        self.assertEqual(initial.metadata.result, 'B+39.50')
+        self.assertEqual(initial.metadata.board_size, 9)
+        self.assertEqual(initial.position.komi, 5.5)
 
     def test_japanese_handicap_handling(self):
         intermediate_board = load_board('''
@@ -57,8 +58,7 @@ class TestSgfWrapper(GoPositionTestCase):
             to_play=go.WHITE,
         )
 
-        sgf = sgf_wrapper.SgfWrapper(JAPANESE_HANDICAP_SGF)
-        positions_w_context = list(sgf.get_main_branch())
+        positions_w_context = list(replay_sgf(JAPANESE_HANDICAP_SGF))
         self.assertEqualPositions(intermediate_position, positions_w_context[1].position)
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
 
@@ -102,8 +102,7 @@ class TestSgfWrapper(GoPositionTestCase):
             recent=(pc('E9'), pc('F9')),
             to_play=go.WHITE
         )
-        sgf = sgf_wrapper.SgfWrapper(CHINESE_HANDICAP_SGF)
-        positions_w_context = list(sgf.get_main_branch())
+        positions_w_context = list(replay_sgf(CHINESE_HANDICAP_SGF))
         self.assertEqualPositions(intermediate_position, positions_w_context[1].position)
         self.assertEqual(positions_w_context[1].next_move, pc('C3'))
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
