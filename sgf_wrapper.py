@@ -112,3 +112,27 @@ def replay_sgf(sgf_contents):
         next_move = get_next_move(current_node)
         yield PositionWithContext(pos, next_move, metadata)
         current_node = current_node.next
+
+def replay_position(position):
+    '''
+    Wrapper for a go.Position which replays its history.
+    Assumes an empty start position! (i.e. no handicap, and history must be exhaustive.)
+
+    for position_w_context in replay_position(position):
+        print(position_w_context.position)
+    '''
+    assert position.n == len(position.recent), "Position history is incomplete"
+    metadata = GameMetadata(
+        result=position.result(),
+        handicap=0,
+        board_size=position.board.shape[0]
+    )
+    go.set_board_size(metadata.board_size)
+
+    pos = Position(komi=position.komi)
+    for player_move in position.recent:
+        color, next_move = player_move
+        yield PositionWithContext(pos, next_move, metadata)
+        pos = pos.play_move(color, next_move)
+    # return the original position, with unknown next move
+    yield PositionWithContext(pos, None, metadata)

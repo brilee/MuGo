@@ -1,5 +1,5 @@
 import go
-from sgf_wrapper import replay_sgf
+from sgf_wrapper import replay_sgf, replay_position
 import unittest
 
 from utils import parse_kgs_coords as pc
@@ -8,6 +8,8 @@ from test_utils import GoPositionTestCase, load_board
 JAPANESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Japanese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]AB[gc][cg];W[ee];B[dg])"
 
 CHINESE_HANDICAP_SGF = "(;GM[1]FF[4]CA[UTF-8]AP[CGoban:3]ST[2]RU[Chinese]SZ[9]HA[2]KM[5.50]PW[test_white]PB[test_black]RE[B+39.50];B[gc];B[cg];W[ee];B[gg];W[eg];B[ge];W[ce];B[ec];W[cc];B[dd];W[de];B[cd];W[bd];B[bc];W[bb];B[be];W[ac];B[bf];W[dh];B[ch];W[ci];B[bi];W[di];B[ah];W[gh];B[hh];W[fh];B[hg];W[gi];B[fg];W[dg];B[ei];W[cf];B[ef];W[ff];B[fe];W[bg];B[bh];W[af];B[ag];W[ae];B[ad];W[ae];B[ed];W[db];B[df];W[eb];B[fb];W[ea];B[fa])"
+
+NO_HANDICAP_SGF = "(;CA[UTF-8]SZ[9]PB[Murakawa Daisuke]PW[Iyama Yuta]KM[6.5]HA[0]RE[W+1.5]GM[1];B[fd];W[cf];B[eg];W[dd];B[dc];W[cc];B[de];W[cd];B[ed];W[he];B[ce];W[be];B[df];W[bf];B[hd];W[ge];B[gd];W[gg];B[db];W[cb];B[cg];W[bg];B[gh];W[fh];B[hh];W[fg];B[eh];W[ei];B[di];W[fi];B[hg];W[dh];B[ch];W[ci];B[bh];W[ff];B[fe];W[hf];B[id];W[bi];B[ah];W[ef];B[dg];W[ee];B[di];W[ig];B[ai];W[ih];B[fb];W[hi];B[ag];W[ab];B[bd];W[bc];B[ae];W[ad];B[af];W[bd];B[ca];W[ba];B[da];W[ie])"
 
 
 class TestSgfWrapper(GoPositionTestCase):
@@ -110,6 +112,44 @@ class TestSgfWrapper(GoPositionTestCase):
         self.assertEqualPositions(final_position, positions_w_context[-1].position)
         self.assertFalse(positions_w_context[-1].is_usable())
         self.assertTrue(positions_w_context[-2].is_usable())
+
+class TestPositionReplay(GoPositionTestCase):
+    def test_replay_position(self):
+        sgf_positions = list(replay_sgf(NO_HANDICAP_SGF))
+        initial = sgf_positions[0]
+        self.assertEqual(initial.metadata.result, 'W+1.5')
+        self.assertEqual(initial.metadata.board_size, 9)
+        self.assertEqual(initial.position.komi, 6.5)
+
+        final = sgf_positions[-1].position
+
+        # sanity check to ensure we're working with the right position
+        final_board = load_board('''
+            .OXX.....
+            O.OX.X...
+            .OOX.....
+            OOOOXXXXX
+            XOXXOXOOO
+            XOOXOO.O.
+            XOXXXOOXO
+            XXX.XOXXO
+            X..XOO.O.
+        ''')
+        expected_final_position = go.Position(
+            final_board,
+            n=62,
+            komi=6.5,
+            caps=(3, 2),
+            ko=None,
+            recent=tuple(),
+            to_play=go.BLACK
+        )
+        self.assertEqualPositions(expected_final_position, final)
+        self.assertEqual(final.n, len(final.recent))
+
+        replayed_positions = list(replay_position(final))
+        for sgf_pos, replay_pos in zip(sgf_positions, replayed_positions):
+            self.assertEqualPositions(sgf_pos.position, replay_pos.position)
 
 if __name__ == '__main__':
     unittest.main()

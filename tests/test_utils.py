@@ -102,5 +102,6 @@ class GoPositionTestCase(unittest.TestCase):
         self.assertEqual(pos1.caps, pos2.caps)
         self.assertEqual(pos1.ko, pos2.ko)
         r_len = min(len(pos1.recent), len(pos2.recent))
-        self.assertEqual(pos1.recent[-r_len:], pos2.recent[-r_len:])
+        if r_len > 0: # if a position has no history, then don't bother testing
+            self.assertEqual(pos1.recent[-r_len:], pos2.recent[-r_len:])
         self.assertEqual(pos1.to_play, pos2.to_play)
