@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from go import Position, LibertyTracker, WHITE, BLACK, EMPTY
+from go import Position, PlayerMove, LibertyTracker, WHITE, BLACK, EMPTY
 import go
 from utils import parse_kgs_coords as pc, parse_sgf_coords
 from test_utils import GoPositionTestCase, load_board
@@ -259,7 +259,7 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(1, 2),
             ko=None,
-            recent=(None,),
+            recent=(PlayerMove(BLACK, None),),
             to_play=WHITE,
         )
         pass_position = start_position.pass_move()
@@ -371,7 +371,7 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(1, 2),
             ko=None,
-            recent=(pc('C9'),),
+            recent=(PlayerMove(BLACK, pc('C9')),),
             to_play=WHITE,
         )
         actual_position = start_position.play_move(BLACK, pc('C9'))
@@ -387,7 +387,7 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(1, 2),
             ko=None,
-            recent=(pc('C9'), pc('J8')),
+            recent=(PlayerMove(BLACK, pc('C9')), PlayerMove(WHITE, pc('J8'))),
             to_play=BLACK,
         )
         actual_position2 = actual_position.play_move(WHITE, pc('J8'))
@@ -421,7 +421,7 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(7, 2),
             ko=None,
-            recent=(pc('B2'),),
+            recent=(PlayerMove(BLACK, pc('B2')),),
             to_play=WHITE,
         )
         actual_position = start_position.play_move(BLACK, pc('B2'))
@@ -451,7 +451,7 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(2, 2),
             ko=pc('B9'),
-            recent=(pc('A9'),),
+            recent=(PlayerMove(BLACK, pc('A9')),),
             to_play=WHITE,
         )
         actual_position = start_position.play_move(BLACK, pc('A9'))
@@ -469,7 +469,11 @@ class TestPosition(GoPositionTestCase):
             komi=6.5,
             caps=(2, 3),
             ko=pc('A9'),
-            recent=(pc('A9'), None, None, pc('B9')),
+            recent=(
+                PlayerMove(BLACK, pc('A9')),
+                PlayerMove(WHITE, None),
+                PlayerMove(BLACK, None),
+                PlayerMove(WHITE, pc('B9'))),
             to_play=BLACK,
         )
         self.assertEqualPositions(ko_delayed_retake, expected_position)

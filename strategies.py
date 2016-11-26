@@ -85,7 +85,7 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
         self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
-        if position.recent and position.n > 100 and position.recent[-1] == None:
+        if position.recent and position.n > 100 and position.recent[-1].move == None:
             # Pass if the opponent passes
             return None
         move_probabilities = self.policy_network.run(position)
@@ -223,7 +223,7 @@ class MCTS(GtpInterface):
         while current.n < self.max_rollout_depth:
             move_probs = self.policy_network.run(current)
             current = self.play_valid_move(current, move_probs)
-            if len(current.recent) > 2 and current.recent[-1] == current.recent[-2] == None:
+            if len(current.recent) > 2 and current.recent[-1].move == current.recent[-2].move == None:
                 break
         else:
             print("max rollout depth exceeded!", file=sys.stderr)

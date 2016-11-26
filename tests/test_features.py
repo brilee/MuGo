@@ -18,7 +18,9 @@ TEST_POSITION = go.Position(
     komi=6.5,
     caps=(1,2),
     ko=None,
-    recent=((0, 1), (0, 8), (1, 0)),
+    recent=(go.PlayerMove(go.BLACK, (0, 1)),
+            go.PlayerMove(go.WHITE, (0, 8)),
+            go.PlayerMove(go.BLACK, (1, 0))),
     to_play=go.BLACK,
 )
 

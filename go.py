@@ -2,6 +2,7 @@
 A board is a NxN numpy array.
 A Coordinate is a tuple index into the board.
 A Move is a (Coordinate c | None).
+A PlayerMove is a (Color, Move) tuple
 
 (0, 0) is considered to be the upper left corner of the board, and (18, 0) is the lower left.
 '''
@@ -14,6 +15,8 @@ import numpy as np
 # Represent a board as a numpy array, with 0 empty, 1 is black, -1 is white.
 # This means that swapping colors is as simple as multiplying array by -1.
 WHITE, EMPTY, BLACK, FILL, KO, UNKNOWN = range(-1, 5)
+
+class PlayerMove(namedtuple('PlayerMove', ['color', 'move'])): pass
 
 # Represents "group not found" in the LibertyTracker object
 MISSING_GROUP_ID = -1
@@ -240,7 +243,7 @@ class Position():
         caps: a (int, int) tuple of captures for B, W.
         lib_tracker: a LibertyTracker object
         ko: a Move
-        recent: a tuple of Moves, such that recent[-1] is the last move. (Would be nicely implemented as a linked list in lower level languages!)
+        recent: a tuple of PlayerMoves, such that recent[-1] is the last move.
         to_play: BLACK or WHITE
         '''
         self.board = board if board is not None else np.copy(EMPTY_BOARD)
@@ -273,7 +276,7 @@ class Position():
         for i in range(N):
             row = []
             for j in range(N):
-                appended = '<' if (self.recent and (i, j) == self.recent[-1]) else ' '
+                appended = '<' if (self.recent and (i, j) == self.recent[-1].move) else ' '
                 row.append(pretty_print_map[board[i,j]] + appended)
             raw_board_contents.append(''.join(row))
 
@@ -316,9 +319,9 @@ class Position():
     def pass_move(self, mutate=False):
         pos = self if mutate else copy.deepcopy(self)
         pos.n += 1
+        pos.recent += (PlayerMove(pos.to_play, None),)
         pos.to_play *= -1
         pos.ko = None
-        pos.recent += (None,)
         return pos
 
     def flip_playerturn(self, mutate=False):
@@ -364,7 +367,7 @@ class Position():
         pos.n += 1
         pos.caps = new_caps
         pos.ko = new_ko
-        pos.recent += (c,)
+        pos.recent += (PlayerMove(color, c),)
         pos.to_play *= -1
         return pos
 

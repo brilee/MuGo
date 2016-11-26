@@ -35,7 +35,7 @@ class TestSgfWrapper(GoPositionTestCase):
             n=1,
             komi=5.5,
             caps=(0, 0),
-            recent=(pc('E5'),),
+            recent=(go.PlayerMove(go.WHITE, pc('E5')),),
             to_play=go.BLACK,
         )
         final_board = load_board('''
@@ -54,7 +54,8 @@ class TestSgfWrapper(GoPositionTestCase):
             n=2,
             komi=5.5,
             caps=(0, 0),
-            recent=(pc('E5'), pc('D3')),
+            recent=(go.PlayerMove(go.WHITE, pc('E5')),
+                    go.PlayerMove(go.BLACK, pc('D3')),),
             to_play=go.WHITE,
         )
 
@@ -79,7 +80,7 @@ class TestSgfWrapper(GoPositionTestCase):
             n=1,
             komi=5.5,
             caps=(0, 0),
-            recent=(pc('G7'),),
+            recent=(go.PlayerMove(go.BLACK, pc('G7')),),
             to_play=go.BLACK,
         )
         final_board = load_board('''
@@ -99,7 +100,8 @@ class TestSgfWrapper(GoPositionTestCase):
             komi=5.5,
             caps=(7, 2),
             ko=None,
-            recent=(pc('E9'), pc('F9')),
+            recent=(go.PlayerMove(go.WHITE, pc('E9')),
+                    go.PlayerMove(go.BLACK, pc('F9')),),
             to_play=go.WHITE
         )
         positions_w_context = list(replay_sgf(CHINESE_HANDICAP_SGF))
