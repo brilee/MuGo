@@ -14,12 +14,13 @@ from load_data_sets import process_raw_data, DataSet
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
 
 def gtp(strategy, read_file=None):
+    n = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
     if strategy == 'random':
         instance = RandomPlayer()
     elif strategy == 'policy':
-        instance = PolicyNetworkBestMovePlayer(read_file)
+        instance = PolicyNetworkBestMovePlayer(n, read_file)
     elif strategy == 'mcts':
-        instance = MCTS(read_file)
+        instance = MCTS(n, read_file)
     else:
         sys.stderr.write("Unknown strategy")
         sys.exit()
