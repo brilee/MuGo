@@ -15,15 +15,8 @@ CHUNK_SIZE = 4096
 CHUNK_HEADER_FORMAT = "iii?"
 CHUNK_HEADER_SIZE = struct.calcsize(CHUNK_HEADER_FORMAT)
 
-def take_n(n, iterator):
-    result = []
-    try:
-        for i in range(n):
-            result.append(next(iterator))
-    except StopIteration:
-        pass
-    finally:
-        return result
+def take_n(n, iterable):
+    return list(itertools.islice(iterable, n))
 
 def iter_chunks(chunk_size, iterator):
     while True:
