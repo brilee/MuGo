@@ -31,8 +31,9 @@ import utils
 EPSILON = 1e-35
 
 class PolicyNetwork(object):
-    def __init__(self, num_input_planes, k=32, num_int_conv_layers=3, use_cpu=False):
-        self.num_input_planes = num_input_planes
+    def __init__(self, features=features.DEFAULT_FEATURES, k=32, num_int_conv_layers=3, use_cpu=False):
+        self.num_input_planes = sum(f.planes for f in features)
+        self.features = features
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
         self.test_summary_writer = None
@@ -149,7 +150,7 @@ class PolicyNetwork(object):
 
     def run(self, position):
         'Return a sorted list of (probability, move) tuples'
-        processed_position = features.DEFAULT_FEATURES.extract(position)
+        processed_position = features.extract_features(position, features=self.features)
         probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
         return probabilities.reshape([go.N, go.N])
 

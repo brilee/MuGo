@@ -5,7 +5,7 @@ import os
 import struct
 import sys
 
-from features import DEFAULT_FEATURES
+from features import bulk_extract_features
 import go
 from sgf_wrapper import replay_sgf
 import utils
@@ -55,13 +55,6 @@ def get_positions_from_sgf(file):
             if position_w_context.is_usable():
                 yield position_w_context
 
-def extract_features(positions):
-    num_positions = len(positions)
-    output = np.zeros([num_positions, go.N, go.N, DEFAULT_FEATURES.planes], dtype=np.uint8)
-    for i, pos in enumerate(positions):
-        output[i] = DEFAULT_FEATURES.extract(pos)
-    return output
-
 def split_test_training(positions_w_context, est_num_positions):
     desired_test_size = 10**5
     if est_num_positions < 2 * desired_test_size:
@@ -103,7 +96,7 @@ class DataSet(object):
     @staticmethod
     def from_positions_w_context(positions_w_context, is_test=False):
         positions, next_moves, results = zip(*positions_w_context)
-        extracted_features = extract_features(positions)
+        extracted_features = bulk_extract_features(positions)
         encoded_moves = make_onehot(next_moves)
         return DataSet(extracted_features, encoded_moves, results, is_test=is_test)
 

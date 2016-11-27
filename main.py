@@ -7,14 +7,13 @@ import sys
 import gtp as gtp_lib
 
 from policy import PolicyNetwork
-from features import DEFAULT_FEATURES
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, MCTS
 from load_data_sets import process_raw_data, DataSet
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
 
 def gtp(strategy, read_file=None):
-    n = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
+    n = PolicyNetwork(use_cpu=True)
     if strategy == 'random':
         instance = RandomPlayer()
     elif strategy == 'policy':
@@ -52,7 +51,7 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None,
     train_chunk_files = [os.path.join(processed_dir, fname) 
         for fname in os.listdir(processed_dir)
         if TRAINING_CHUNK_RE.match(fname)]
-    n = PolicyNetwork(DEFAULT_FEATURES.planes)
+    n = PolicyNetwork()
     n.initialize_variables(read_file)
     if logdir is not None:
         n.initialize_logging(logdir)
