@@ -23,6 +23,30 @@ def translate_gtp_colors(gtp_color):
 def is_move_reasonable(position, move):
     return position.is_move_legal(move) and go.is_eyeish(position.board, move) != position.to_play
 
+def select_most_likely(position, move_probabilities):
+    for move in sorted_moves(move_probabilities):
+        if is_move_reasonable(position, move):
+            return move
+    return None
+
+def select_weighted_random(position, move_probabilities):
+    selection = random.random()
+    selected_move = None
+    current_probability = 0
+    # technically, don't have to sort in order to correctly simulate a random
+    # draw, but it cuts down on how many additions we do.
+    for move, move_prob in np.ndenumerate(move_probabilities):
+        current_probability += move_prob
+        if current_probability > selection:
+            selected_move = move
+            break
+    if is_move_reasonable(position, selected_move):
+        return selected_move
+    else:
+        # fallback in case the selected move was illegal
+        return select_most_likely(position, move_probabilities)
+
+
 class GtpInterface(object):
     def __init__(self):
         self.size = 9
@@ -89,10 +113,29 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             # Pass if the opponent passes
             return None
         move_probabilities = self.policy_network.run(position)
-        for move in sorted_moves(move_probabilities):
-            if is_move_reasonable(position, move):
-                return move
-        return None
+        return select_most_likely(position, move_probabilities)
+
+class PolicyNetworkRandomMovePlayer(GtpInterface):
+    def __init__(self, policy_network, read_file):
+        self.policy_network = policy_network
+        self.read_file = read_file
+        super().__init__()
+
+    def clear(self):
+        super().clear()
+        self.refresh_network()
+
+    def refresh_network(self):
+        # Ensure that the player is using the latest version of the network
+        # so that the network can be continually trained even as it's playing.
+        self.policy_network.initialize_variables(self.read_file)
+
+    def suggest_move(self, position):
+        if position.recent and position.n > 100 and position.recent[-1].move == None:
+            # Pass if the opponent passes
+            return None
+        move_probabilities = self.policy_network.run(position)
+        return select_weighted_random(position, move_probabilities)
 
 # Exploration constant
 c_PUCT = 5

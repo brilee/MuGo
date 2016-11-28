@@ -7,7 +7,7 @@ import sys
 import gtp as gtp_lib
 
 from policy import PolicyNetwork
-from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, MCTS
+from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, PolicyNetworkRandomMovePlayer, MCTS
 from load_data_sets import process_raw_data, DataSet
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
@@ -18,6 +18,8 @@ def gtp(strategy, read_file=None):
         instance = RandomPlayer()
     elif strategy == 'policy':
         instance = PolicyNetworkBestMovePlayer(n, read_file)
+    elif strategy == 'randompolicy':
+        instance = PolicyNetworkRandomMovePlayer(n, read_file)
     elif strategy == 'mcts':
         instance = MCTS(n, read_file)
     else:
