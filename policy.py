@@ -182,13 +182,14 @@ class StatisticsCollector(object):
     the python level, and then shove it through the accuracy/cost summary
     nodes to generate the appropriate summary protobufs for writing.
     '''
-    with tf.device("/cpu:0"):
+    graph = tf.Graph()
+    with tf.device("/cpu:0"), graph.as_default():
         accuracy = tf.placeholder(tf.float32, [])
         cost = tf.placeholder(tf.float32, [])
         accuracy_summary = tf.scalar_summary("accuracy", accuracy)
         cost_summary = tf.scalar_summary("log_likelihood_cost", cost)
         accuracy_summaries = tf.merge_summary([accuracy_summary, cost_summary], name="accuracy_summaries")
-    session = tf.Session()
+    session = tf.Session(graph=graph)
 
     def __init__(self):
         self.accuracies = []
