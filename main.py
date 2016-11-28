@@ -44,7 +44,27 @@ def preprocess(*data_sets, processed_dir="processed_data"):
     if not os.path.isdir(processed_dir):
         os.mkdir(processed_dir)
 
-    process_raw_data(*data_sets, processed_dir=processed_dir)
+    sgf_files = list(find_sgf_files(*data_sets))
+    print("%s sgfs found." % len(sgf_files), file=sys.stderr)
+    est_num_positions = len(sgf_files) * 200 # about 200 moves per game
+    print("Estimated number of chunks: %s" % (est_num_positions // CHUNK_SIZE), file=sys.stderr)
+    positions_w_context = itertools.chain(*map(get_positions_from_sgf, sgf_files))
+
+    test_chunk, training_chunks = split_test_training(positions_w_context, est_num_positions)
+    print("Allocating %s positions as test; remainder as training" % len(test_chunk), file=sys.stderr)
+
+    print("Writing test chunk")
+    test_dataset = DataSet.from_positions_w_context(test_chunk, is_test=True)
+    test_filename = os.path.join(processed_dir, "test.chunk.gz")
+    test_dataset.write(test_filename)
+
+    training_datasets = map(DataSet.from_positions_w_context, training_chunks)
+    for i, train_dataset in enumerate(training_datasets):
+        if i % 10 == 0:
+            print("Writing training chunk %s" % i)
+        train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
+        train_dataset.write(train_filename)
+    print("%s chunks written" % (i+1))
 
 def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None, checkpoint_freq=10000):
     test_dataset = DataSet.read(os.path.join(processed_dir, "test.chunk.gz"))
