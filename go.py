@@ -307,6 +307,8 @@ class Position():
 
     def is_move_legal(self, move):
         'Checks that a move is on an empty space, not on ko, and not suicide'
+        if move is None:
+            return True
         if self.board[move] != EMPTY:
             return False
         if move == self.ko:
@@ -341,12 +343,12 @@ class Position():
 
         pos = self if mutate else copy.deepcopy(self)
 
-        if not self.is_move_legal(c):
-            raise IllegalMove()
-
         if c is None:
             pos = pos.pass_move(mutate=mutate)
             return pos
+
+        if not self.is_move_legal(c):
+            raise IllegalMove()
 
         place_stones(pos.board, color, [c])
         captured_stones = pos.lib_tracker.add_stone(color, c)

@@ -341,6 +341,8 @@ class TestPosition(GoPositionTestCase):
                     position.play_move(BLACK, move)
             else:
                 position.play_move(BLACK, move)
+        # pass should also be legal
+        position.play_move(BLACK, None)
 
         pass_position = position.pass_move()
         W_legal_moves = pc_set('C8 J8 J6 J1')
@@ -350,6 +352,8 @@ class TestPosition(GoPositionTestCase):
                     pass_position.play_move(WHITE, move)
             else:
                 pass_position.play_move(WHITE, move)
+        # pass should also be legal
+        pass_position.play_move(WHITE, None)
 
     def test_move(self):
         start_position = Position(
