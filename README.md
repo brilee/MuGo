@@ -18,7 +18,7 @@ Start by installing Tensorflow along with GPU drivers (i.e. CUDA support for Nvi
 
 Get SGFs for supervised learning
 --------------------------------
-Second, find a source of SGF files. You can find 15 years of KGS high-dan games at [u-go.net](u-go.net/gamerecords/). Alternately, you can download a database of professional games from a variety of sources.
+Second, find a source of SGF files. You can find 15 years of KGS high-dan games at [u-go.net](https://u-go.net/gamerecords/). Alternately, you can download a database of professional games from a variety of sources.
 
 Preprocess SGFs
 ---------------
