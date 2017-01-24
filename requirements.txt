@@ -1,7 +1,7 @@
-argh==0.26.2
-numpy==1.11.0
-protobuf==3.0.0b2
-pygtp==0.2
+argh
+numpy
+pygtp>=0.2
 sgf==0.5
+tensorflow>=0.12
+protobuf==3.1.0.post1
 six==1.10.0
-tensorflow==0.9.0rc0
