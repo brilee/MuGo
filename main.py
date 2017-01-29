@@ -8,7 +8,7 @@ import gtp as gtp_lib
 
 from policy import PolicyNetwork
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, PolicyNetworkRandomMovePlayer, MCTS
-from load_data_sets import process_raw_data, DataSet
+from load_data_sets import DataSet
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
 
