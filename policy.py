@@ -117,9 +117,8 @@ class PolicyNetwork(object):
         self.training_summary_writer = tf.summary.FileWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
 
     def initialize_variables(self, save_file=None):
-        if save_file is None:
-            self.session.run(tf.global_variables_initializer())
-        else:
+        self.session.run(tf.global_variables_initializer())
+        if save_file is not None:
             self.saver.restore(self.session, save_file)
 
     def get_global_step(self):

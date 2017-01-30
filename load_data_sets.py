@@ -3,6 +3,7 @@ import gzip
 import numpy as np
 import os
 import struct
+import sys
 
 from features import bulk_extract_features
 import go
@@ -48,6 +49,7 @@ def get_positions_from_sgf(file):
                 yield position_w_context
 
 def split_test_training(positions_w_context, est_num_positions):
+    print("Estimated number of chunks: %s" % (est_num_positions // CHUNK_SIZE), file=sys.stderr)
     desired_test_size = 10**5
     if est_num_positions < 2 * desired_test_size:
         positions_w_context = list(positions_w_context)
@@ -123,3 +125,12 @@ class DataSet(object):
             next_moves = flat_nextmoves.reshape(data_size, board_size * board_size)
 
         return DataSet(pos_features, next_moves, [], is_test=is_test)
+
+def parse_data_sets(*data_sets):
+    sgf_files = list(find_sgf_files(*data_sets))
+    print("%s sgfs found." % len(sgf_files), file=sys.stderr)
+    est_num_positions = len(sgf_files) * 200 # about 200 moves per game
+    positions_w_context = itertools.chain(*map(get_positions_from_sgf, sgf_files))
+
+    test_chunk, training_chunks = split_test_training(positions_w_context, est_num_positions)
+    return test_chunk, training_chunks
