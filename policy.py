@@ -113,8 +113,8 @@ class PolicyNetwork(object):
                 setattr(self, name, thing)
 
     def initialize_logging(self, tensorboard_logdir):
-        self.test_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
-        self.training_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
+        self.test_summary_writer = tf.summary.FileWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
+        self.training_summary_writer = tf.summary.FileWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
 
     def initialize_variables(self, save_file=None):
         if save_file is None:
