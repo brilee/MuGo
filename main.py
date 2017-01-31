@@ -80,15 +80,10 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None,
             print("Using %s" % file)
             train_dataset = DataSet.read(file)
             n.train(train_dataset)
-            if save_file is not None and n.get_global_step() > last_save_checkpoint + checkpoint_freq:
+            n.save_variables(save_file)
+            if n.get_global_step() > last_save_checkpoint + checkpoint_freq:
                 n.check_accuracy(test_dataset)
-                print("Saving checkpoint to %s" % save_file, file=sys.stderr)
                 last_save_checkpoint = n.get_global_step()
-                n.save_variables(save_file)
-
-    if save_file is not None:
-        n.save_variables(save_file)
-        print("Finished training. New model saved to %s" % save_file, file=sys.stderr)
 
 
 

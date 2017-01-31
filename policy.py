@@ -22,6 +22,7 @@ linear layer with a single tanh unit.
 '''
 import math
 import os
+import sys
 import tensorflow as tf
 
 import features
@@ -125,7 +126,9 @@ class PolicyNetwork(object):
         return self.session.run(self.global_step)
 
     def save_variables(self, save_file):
-        self.saver.save(self.session, save_file)
+        if save_file is not None:
+            print("Saving checkpoint to %s" % save_file, file=sys.stderr)
+            self.saver.save(self.session, save_file)
 
     def train(self, training_data, batch_size=32):
         num_minibatches = training_data.data_size // batch_size
