@@ -1,9 +1,12 @@
 import argparse
 import argh
+from contextlib import contextmanager
 import os
 import random
 import re
 import sys
+import time
+
 import gtp as gtp_lib
 
 from policy import PolicyNetwork
@@ -11,6 +14,14 @@ from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, PolicyNetworkR
 from load_data_sets import DataSet, parse_data_sets
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
+
+@contextmanager
+def timer(message):
+    tick = time.time()
+    yield
+    tock = time.time()
+    print("%s: %.3f" % (message, (tock - tick)))
+
 
 def gtp(strategy, read_file=None):
     n = PolicyNetwork(use_cpu=True)
@@ -78,11 +89,15 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None,
         random.shuffle(train_chunk_files)
         for file in train_chunk_files:
             print("Using %s" % file)
-            train_dataset = DataSet.read(file)
-            n.train(train_dataset)
-            n.save_variables(save_file)
+            with timer("load dataset"):
+                train_dataset = DataSet.read(file)
+            with timer("training"):
+                n.train(train_dataset)
+            with timer("save model"):
+                n.save_variables(save_file)
             if n.get_global_step() > last_save_checkpoint + checkpoint_freq:
-                n.check_accuracy(test_dataset)
+                with timer("test set evaluation"):
+                    n.check_accuracy(test_dataset)
                 last_save_checkpoint = n.get_global_step()
 
 
