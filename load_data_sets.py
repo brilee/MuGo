@@ -72,16 +72,19 @@ class DataSet(object):
         self.board_size = pos_features.shape[1]
         self.input_planes = pos_features.shape[-1]
         self._index_within_epoch = 0
+        self.shuffle()
+
+    def shuffle(self):
+        perm = np.arange(self.data_size)
+        np.random.shuffle(perm)
+        self.pos_features = self.pos_features[perm]
+        self.next_moves = self.next_moves[perm]
+        self._index_within_epoch = 0
 
     def get_batch(self, batch_size):
         assert batch_size < self.data_size
         if self._index_within_epoch + batch_size > self.data_size:
-            # Shuffle the data and start over
-            perm = np.arange(self.data_size)
-            np.random.shuffle(perm)
-            self.pos_features = self.pos_features[perm]
-            self.next_moves = self.next_moves[perm]
-            self._index_within_epoch = 0
+            self.shuffle()
         start = self._index_within_epoch
         end = start + batch_size
         self._index_within_epoch += batch_size
