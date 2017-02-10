@@ -4,6 +4,7 @@ import sys
 import time
 import numpy as np
 import gtp
+import copy
 
 import go
 import utils
@@ -92,7 +93,7 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
             return None
         move_probabilities = self.policy_network.run(position)
         for move in sorted_moves(move_probabilities):
-            if go.is_reasonable(position, move):
+            if is_move_reasonable(position, move):
                 return move
         return None
 
@@ -139,7 +140,7 @@ class MCTSNode():
         return self.position is not None
 
     def compute_position(self):
-        self.position = self.parent.position.play_move(self.move)
+        self.position = self.parent.position.play_move(self.parent.position.to_play, self.move)
         return self.position
 
     def expand(self, move_probabilities):
@@ -154,6 +155,7 @@ class MCTSNode():
             # No point in updating Q / U values for root, since they are
             # used to decide between children nodes.
             return
+        self.parent.N += 1
         self.Q, self.U = (
             self.Q + (value - self.Q) / self.N,
             c_PUCT * math.sqrt(self.parent.N) * self.prior / self.N,
@@ -169,9 +171,9 @@ class MCTSNode():
 
 
 class MCTS(GtpInterface):
-    def __init__(self, read_file, seconds_per_move=5):
+    def __init__(self, read_file, seconds_per_move=10):
         self.seconds_per_move = seconds_per_move
-        self.max_rollout_depth = go.N * go.N * 3
+        self.max_rollout_depth = go.N * go.N  * 3
         self.policy_network = PolicyNetwork(DEFAULT_FEATURES.planes, use_cpu=True)
         self.read_file = read_file
         super().__init__()
@@ -214,14 +216,18 @@ class MCTS(GtpInterface):
         # evaluation
         value = self.estimate_value(chosen_leaf)
         # backup
-        print("value: %s" % value, file=sys.stderr)
+        perspective = 1 if root.position.player1turn() else -1
+        value *= perspective
+
+        print("value: %s, perspective: %d" % (value, perspective), file=sys.stderr)
+
         chosen_leaf.backup_value(value)
 
     def estimate_value(self, chosen_leaf):
         # Estimate value of position using rollout only (for now).
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
-        current = leaf_position
+        current = copy.deepcopy(leaf_position)
         while current.n < self.max_rollout_depth:
             move_probs = self.policy_network.run(current)
             current = self.play_valid_move(current, move_probs)
@@ -230,14 +236,13 @@ class MCTS(GtpInterface):
         else:
             print("max rollout depth exceeded!", file=sys.stderr)
 
-        perspective = 1 if leaf_position.player1turn else -1
-        return current.score() * perspective
+        return current.score()
 
     def play_valid_move(self, position, move_probs):
         for move in sorted_moves(move_probs):
             if go.is_eyeish(position.board, move):
                 continue
-            candidate_pos = position.play_move(move, mutate=True)
+            candidate_pos = position.play_move(position.to_play, move, mutate=True)
             if candidate_pos is not None:
                 return candidate_pos
         return position.pass_move(mutate=True)

@@ -339,7 +339,8 @@ class Position():
         pos = self if mutate else copy.deepcopy(self)
 
         if not self.is_move_legal(c):
-            raise IllegalMove()
+            return None
+            #raise IllegalMove()
 
         if c is None:
             pos = pos.pass_move(mutate=mutate)
@@ -367,6 +368,9 @@ class Position():
         pos.recent += (c,)
         pos.to_play *= -1
         return pos
+
+    def player1turn(self):
+        return self.to_play == BLACK
 
     def score(self):
         working_board = np.copy(self.board)

@@ -24,12 +24,22 @@ class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata
     Stores a position, the move that came next, and the eventual result.
     '''
     def is_usable(self):
-        return all([
+        t = all([
             self.position is not None,
             self.next_move is not None,
             self.metadata.result != "Void",
-            self.metadata.handicap <= 4,
+            self.metadata.handicap <= 6,
         ])
+
+        if not t:
+            pass
+            #print("not ok", self.next_move)
+            #print("not usable:%s" % str(self), file=sys.stderr)
+        else:
+            pass
+            #print("usable:", file=sys.stderr)
+
+        return t
 
     def __str__(self):
         return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
@@ -97,7 +107,10 @@ def replay_sgf(sgf_contents):
     game = collection.children[0]
     props = game.root.properties
     assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
-    komi = float(sgf_prop(props.get('KM')))
+
+    komi = 0
+    if props.get('KM') != None:
+        komi = float(sgf_prop(props.get('KM')))
     metadata = GameMetadata(
         result=sgf_prop(props.get('RE')),
         handicap=int(sgf_prop(props.get('HA', [0]))),

@@ -94,13 +94,13 @@ class PolicyNetwork(object):
         was_correct = tf.equal(tf.argmax(output, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
-        weight_summaries = tf.merge_summary([
-            tf.histogram_summary(weight_var.name, weight_var)
+        weight_summaries = tf.summary.merge([
+            tf.summary.histogram(weight_var.name, weight_var)
             for weight_var in [W_conv_init] +  W_conv_intermediate + [W_conv_final, b_conv_final]],
             name="weight_summaries"
         )
-        activation_summaries = tf.merge_summary([
-            tf.histogram_summary(act_var.name, act_var)
+        activation_summaries = tf.summary.merge([
+            tf.summary.histogram(act_var.name, act_var)
             for act_var in [h_conv_init] + h_conv_intermediate + [h_conv_final]],
             name="activation_summaries"
         )
@@ -112,8 +112,8 @@ class PolicyNetwork(object):
                 setattr(self, name, thing)
 
     def initialize_logging(self, tensorboard_logdir):
-        self.test_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
-        self.training_summary_writer = tf.train.SummaryWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
+        self.test_summary_writer = tf.summary.FileWriter(os.path.join(tensorboard_logdir, "test"), self.session.graph)
+        self.training_summary_writer = tf.summary.FileWriter(os.path.join(tensorboard_logdir, "training"), self.session.graph)
 
     def initialize_variables(self, save_file=None):
         if save_file is None:
@@ -184,9 +184,9 @@ class StatisticsCollector(object):
     with tf.device("/cpu:0"):
         accuracy = tf.placeholder(tf.float32, [])
         cost = tf.placeholder(tf.float32, [])
-        accuracy_summary = tf.scalar_summary("accuracy", accuracy)
-        cost_summary = tf.scalar_summary("log_likelihood_cost", cost)
-        accuracy_summaries = tf.merge_summary([accuracy_summary, cost_summary], name="accuracy_summaries")
+        accuracy_summary = tf.summary.scalar("accuracy", accuracy)
+        cost_summary = tf.summary.scalar("log_likelihood_cost", cost)
+        accuracy_summaries = tf.summary.merge([accuracy_summary, cost_summary], name="accuracy_summaries")
     session = tf.Session()
 
     def __init__(self):
