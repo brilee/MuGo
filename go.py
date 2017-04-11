@@ -335,11 +335,13 @@ class Position():
     def get_liberties(self):
         return self.lib_tracker.liberty_cache
 
-    def play_move(self, color, c, mutate=False):
+    def play_move(self, c, color=None, mutate=False):
         # Obeys CGOS Rules of Play. In short:
         # No suicides
         # Chinese/area scoring
         # Positional superko (this is very crudely approximate at the moment.)
+        if color is None:
+            color = self.to_play
 
         pos = self if mutate else copy.deepcopy(self)
 

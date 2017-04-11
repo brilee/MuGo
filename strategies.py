@@ -278,7 +278,10 @@ class MCTS(GtpInterface):
         for move in sorted_moves(move_probs):
             if go.is_eyeish(position.board, move):
                 continue
-            candidate_pos = position.play_move(move, mutate=True)
-            if candidate_pos is not None:
+            try:
+                candidate_pos = position.play_move(move, mutate=True)
+            except go.IllegalMove:
+                continue
+            else:
                 return candidate_pos
         return position.pass_move(mutate=True)

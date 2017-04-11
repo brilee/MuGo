@@ -56,10 +56,10 @@ def handle_node(pos, node):
     # If B/W props are not present, then there is no move. But if it is present and equal to the empty string, then the move was a pass.
     elif 'B' in props:
         black_move = pc(props.get('B', [''])[0])
-        return pos.play_move(go.BLACK, black_move)
+        return pos.play_move(black_move, color=go.BLACK)
     elif 'W' in props:
         white_move = pc(props.get('W', [''])[0])
-        return pos.play_move(go.WHITE, white_move)
+        return pos.play_move(white_move, color=go.WHITE)
     else:
         return pos
 
@@ -133,6 +133,6 @@ def replay_position(position):
     for player_move in position.recent:
         color, next_move = player_move
         yield PositionWithContext(pos, next_move, metadata)
-        pos = pos.play_move(color, next_move)
+        pos = pos.play_move(next_move, color=color)
     # return the original position, with unknown next move
     yield PositionWithContext(pos, None, metadata)
