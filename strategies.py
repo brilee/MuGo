@@ -73,7 +73,7 @@ class GtpInterface(object):
     def make_move(self, color, vertex):
         coords = utils.parse_pygtp_coords(vertex)
         self.accomodate_out_of_turn(color)
-        self.position = self.position.play_move(translate_gtp_colors(color), coords)
+        self.position = self.position.play_move(coords, color=translate_gtp_colors(color))
         return self.position is not None
 
     def get_move(self, color):
@@ -253,12 +253,12 @@ class MCTS(GtpInterface):
         move_probs = self.policy_network.run(position)
         chosen_leaf.expand(move_probs)
         # evaluation
-        value = self.estimate_value(chosen_leaf)
+        value = self.estimate_value(root, chosen_leaf)
         # backup
         print("value: %s" % value, file=sys.stderr)
         chosen_leaf.backup_value(value)
 
-    def estimate_value(self, chosen_leaf):
+    def estimate_value(self, root, chosen_leaf):
         # Estimate value of position using rollout only (for now).
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
@@ -271,7 +271,7 @@ class MCTS(GtpInterface):
         else:
             print("max rollout depth exceeded!", file=sys.stderr)
 
-        perspective = 1 if leaf_position.player1turn else -1
+        perspective = 1 if leaf_position.to_play == root.position.to_play else -1
         return current.score() * perspective
 
     def play_valid_move(self, position, move_probs):
