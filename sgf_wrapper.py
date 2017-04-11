@@ -97,7 +97,10 @@ def replay_sgf(sgf_contents):
     game = collection.children[0]
     props = game.root.properties
     assert int(sgf_prop(props.get('GM', ['1']))) == 1, "Not a Go SGF!"
-    komi = float(sgf_prop(props.get('KM')))
+
+    komi = 0
+    if props.get('KM') != None:
+        komi = float(sgf_prop(props.get('KM')))
     metadata = GameMetadata(
         result=sgf_prop(props.get('RE')),
         handicap=int(sgf_prop(props.get('HA', [0]))),

@@ -262,7 +262,7 @@ class MCTS(GtpInterface):
         # Estimate value of position using rollout only (for now).
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
-        current = leaf_position
+        current = copy.deepcopy(leaf_position)
         while current.n < self.max_rollout_depth:
             move_probs = self.policy_network.run(current)
             current = self.play_valid_move(current, move_probs)
