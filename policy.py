@@ -87,7 +87,7 @@ class PolicyNetwork(object):
         # Add epsilon to avoid taking the log of 0 in following step
         output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final) + tf.constant(EPSILON)
 
-        log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.mul(tf.log(output), y), reduction_indices=[1]))
+        log_likelihood_cost = -tf.reduce_mean(tf.reduce_sum(tf.multiply(tf.log(output), y), reduction_indices=[1]))
 
         # The step size was initialized to 0.003 and was halved every 80 million training steps
         _learning_rate = tf.train.exponential_decay(3e-3, global_step,
