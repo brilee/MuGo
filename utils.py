@@ -22,6 +22,11 @@ def parse_sgf_coords(s):
         return None
     return SGF_COLUMNS.index(s[1]), SGF_COLUMNS.index(s[0])
 
+def unparse_sgf_coords(c):
+    if c is None:
+        return ''
+    return SGF_COLUMNS[c[1]] + SGF_COLUMNS[c[0]]
+
 def parse_kgs_coords(s):
     'Interprets coords. A1 is bottom left; A9 is top left.'
     if s == 'pass':

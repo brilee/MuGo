@@ -30,6 +30,17 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.parse_sgf_coords('aa'), (0, 0))
         self.assertEqual(utils.parse_sgf_coords('ac'), (2, 0))
         self.assertEqual(utils.parse_sgf_coords('ca'), (0, 2))
+        self.assertEqual(utils.parse_sgf_coords(''), None)
+        self.assertEqual(utils.unparse_sgf_coords(None), '')
+        self.assertEqual(
+            'aa',
+            utils.unparse_sgf_coords(utils.parse_sgf_coords('aa')))
+        self.assertEqual(
+            'sa',
+            utils.unparse_sgf_coords(utils.parse_sgf_coords('sa')))
+        self.assertEqual(
+            (1, 17),
+            utils.parse_sgf_coords(utils.unparse_sgf_coords((1, 17))))
         self.assertEqual(utils.parse_kgs_coords('A1'), (8, 0))
         self.assertEqual(utils.parse_kgs_coords('A9'), (0, 0))
         self.assertEqual(utils.parse_kgs_coords('C2'), (7, 2))

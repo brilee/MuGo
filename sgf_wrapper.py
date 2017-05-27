@@ -12,8 +12,43 @@ import numpy as np
 
 import go
 from go import Position
-from utils import parse_sgf_coords as pc
+from utils import parse_sgf_coords as pc, unparse_sgf_coords as upc
 import sgf
+
+SGF_TEMPLATE = '''(;GM[1]FF[4]CA[UTF-8]AP[MuGo_sgfgenerator]RU[{ruleset}]
+SZ[{boardsize}]KM[{komi}]PW[{white_name}]PB[{black_name}]RE[{result}]
+{game_moves})'''
+
+PROGRAM_IDENTIFIER = "MuGo"
+
+def translate_sgf_move(player_move):
+    if player_move.color not in (go.BLACK, go.WHITE):
+        raise ValueError("Can't translate color %s to sgf" % player_move.color)
+    coords = upc(player_move.move)
+    color = 'B' if player_move.color == go.BLACK else 'W'
+    return ";{color}[{coords}]".format(color=color, coords=coords)
+
+def make_sgf(
+    move_history,
+    score,
+    ruleset="Chinese",
+    boardsize=19,
+    komi=7.5,
+    white_name=PROGRAM_IDENTIFIER,
+    black_name=PROGRAM_IDENTIFIER,
+    ):
+    '''Turn a game into SGF.
+
+    Doesn't handle handicap games or positions with incomplete history.
+    '''
+    game_moves = ''.join(map(translate_sgf_move, move_history))
+    if score == 0:
+        result = 'Draw'
+    elif score > 0:
+        result =  'B+%s' % score
+    else:
+        result = 'W+%s' % -score
+    return SGF_TEMPLATE.format(**locals())
 
 class GameMetadata(namedtuple("GameMetadata", "result handicap board_size")):
     pass
