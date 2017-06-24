@@ -86,7 +86,7 @@ class PolicyNetwork(object):
 
         logits = tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final
 
-        log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, y))
+        log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
         train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
         was_correct = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
