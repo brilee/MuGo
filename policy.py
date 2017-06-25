@@ -84,6 +84,7 @@ class PolicyNetwork(object):
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
         h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
 
+        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
         logits = tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final
 
         log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
