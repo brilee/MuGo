@@ -1,4 +1,9 @@
 lib
+lib64
 bin
 data
 processed_data
+*__pycache__
+pip-selfcheck.json
+pyvenv.cfg
+
