@@ -1,9 +1,11 @@
+import copy
 import math
 import random
 import sys
 import time
-import numpy as np
+
 import gtp
+import numpy as np
 
 import go
 import utils
@@ -44,6 +46,8 @@ def select_weighted_random(position, move_probabilities):
         return selected_move
     else:
         # fallback in case the selected move was illegal
+        print("Using fallback move; position was %s\n, selected %s" % (
+            position, selected_move))
         return select_most_likely(position, move_probabilities)
 
 
@@ -236,7 +240,7 @@ class MCTS(GtpInterface):
             self.tree_search(root)
         # there's a theoretical bug here: if you refuse to pass, this AI will
         # eventually start filling in its own eyes.
-        return max(root.children.keys(), key=lambda move, root=root: root.children[move].N)
+        return max(root.children.keys(), key=lambda move, root: root.children[move].N)
 
     def tree_search(self, root):
         print("tree search", file=sys.stderr)

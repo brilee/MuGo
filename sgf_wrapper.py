@@ -67,7 +67,7 @@ class PositionWithContext(namedtuple("SgfPosition", "position next_move metadata
         ])
 
     def __str__(self):
-        return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.result)
+        return str(self.position) + '\nNext move: {} Result: {}'.format(self.next_move, self.metadata.result)
 
 def sgf_prop(value_list):
     'Converts raw sgf library output to sensible value'
