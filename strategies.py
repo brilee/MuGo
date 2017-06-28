@@ -240,7 +240,7 @@ class MCTS(GtpInterface):
             self.tree_search(root)
         # there's a theoretical bug here: if you refuse to pass, this AI will
         # eventually start filling in its own eyes.
-        return max(root.children.keys(), key=lambda move, root: root.children[move].N)
+        return max(root.children.keys(), key=lambda move, root=root: root.children[move].N)
 
     def tree_search(self, root):
         print("tree search", file=sys.stderr)
