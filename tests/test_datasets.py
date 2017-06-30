@@ -3,6 +3,7 @@ import os
 from test_utils import GoPositionTestCase
 import go
 import load_data_sets
+import random
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 TEMP_FILE_NAME = "dataset_unittest_tempfile"
@@ -30,6 +31,14 @@ class TestDataSets(GoPositionTestCase):
         self.assertEqualNPArray(dataset.pos_features, recovered.pos_features)
 
 class TestDataSetHelpers(GoPositionTestCase):
+    def test_shuffler(self):
+        random.seed(1)
+        dataset = (i for i in range(10))
+        shuffled = list(load_data_sets.shuffler(
+            dataset, pool_size=5, refill_threshold=0.8))
+        self.assertEqual(len(shuffled), 10)
+        self.assertNotEqual(shuffled, list(range(10)))
+
     def test_onehot(self):
         go.set_board_size(9)
         coords = [(1, 2), (3, 4)]
