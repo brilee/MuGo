@@ -89,7 +89,6 @@ class DataSet(object):
         self.board_size = pos_features.shape[1]
         self.input_planes = pos_features.shape[-1]
         self._index_within_epoch = 0
-        self.shuffle()
 
     def shuffle(self):
         perm = np.arange(self.data_size)

@@ -89,12 +89,11 @@ def train(processed_dir, read_file=None, save_file=None, epochs=10, logdir=None,
         random.shuffle(train_chunk_files)
         for file in train_chunk_files:
             print("Using %s" % file)
-            with timer("load dataset"):
-                train_dataset = DataSet.read(file)
+            train_dataset = DataSet.read(file)
+            train_dataset.shuffle()
             with timer("training"):
                 n.train(train_dataset)
-            with timer("save model"):
-                n.save_variables(save_file)
+            n.save_variables(save_file)
             if n.get_global_step() > last_save_checkpoint + checkpoint_freq:
                 with timer("test set evaluation"):
                     n.check_accuracy(test_dataset)
