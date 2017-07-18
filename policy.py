@@ -1,5 +1,7 @@
 '''
 Neural network architecture.
+
+(From the AlphaGo paper)
 The input to the policy network is a 19 x 19 x 48 image stack consisting of
 48 feature planes. The first hidden layer zero pads the input into a 23 x 23
 image, then convolves k filters of kernel size 5 x 5 with stride 1 with the
@@ -8,9 +10,7 @@ hidden layers 2 to 12 zero pads the respective previous hidden layer into a
 21 x 21 image, then convolves k filters of kernel size 3 x 3 with stride 1,
 again followed by a rectifier nonlinearity. The final layer convolves 1 filter
 of kernel size 1 x 1 with stride 1, with a different bias for each position,
-and applies a softmax function. The match version of AlphaGo used k = 192
-filters; Fig. 2b and Extended Data Table 3 additionally show the results
-of training with k = 128, 256 and 384 filters.
+and applies a softmax function.
 
 The input to the value network is also a 19 x 19 x 48 image stack, with an
 additional binary feature plane describing the current colour to play.
@@ -19,6 +19,20 @@ is an additional convolution layer, hidden layer 13 convolves 1 filter of
 kernel size 1 x 1 with stride 1, and hidden layer 14 is a fully connected
 linear layer with 256 rectifier units. The output layer is a fully connected
 linear layer with a single tanh unit.
+
+(From the Cazenave resnet policy paper)
+The input layer of our Go networks is also residual. It uses a 5 × 5
+convolutional layer in parallel to a 1 × 1 convolutional layer and adds the
+outputs of the two layers before the ReLU layer. It is depicted in figure 3.
+
+The output layer of the network is a 3 × 3 convolutional layer with one output
+plane followed by a SoftMax. All the hidden layers use 256 feature planes and
+3 × 3 filters.
+
+We define the number of layers of a network as the number of convolutional
+layers. So a 28 layers network has 28 convolutional layers corresponding to 14
+layers depicted in figure 2.
+
 '''
 import math
 import os
@@ -67,18 +81,26 @@ class PolicyNetwork(object):
             return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding="SAME")
 
         # initial conv layer is 5x5
-        W_conv_init = _weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init")
-        h_conv_init = tf.nn.relu(_conv2d(x, W_conv_init), name="h_conv_init")
+        W_conv_init55 = _weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init55")
+        W_conv_init11 = _weight_variable([1, 1, self.num_input_planes, self.k], name="W_conv_init11")
+        h_conv_init = tf.nn.relu(_conv2d(x, W_conv_init55) + _conv2d(x, W_conv_init11), name="h_conv_init")
 
-        # followed by a series of 3x3 conv layers
+        # followed by a series of resnet 3x3 conv layers
         W_conv_intermediate = []
         h_conv_intermediate = []
         _current_h_conv = h_conv_init
         for i in range(self.num_int_conv_layers):
             with tf.name_scope("layer"+str(i)):
-                W_conv_intermediate.append(_weight_variable([3, 3, self.k, self.k], name="W_conv"))
-                h_conv_intermediate.append(tf.nn.relu(_conv2d(_current_h_conv, W_conv_intermediate[-1]), name="h_conv"))
-                _current_h_conv = h_conv_intermediate[-1]
+                _resnet_weights1 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet1")
+                _resnet_weights2 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet2")
+                _int_conv = tf.nn.relu(_conv2d(_current_h_conv, _resnet_weights1, name="h_conv_intermediate"))
+                _output_conv = tf.nn.relu(
+                    _current_h_conv +
+                    _conv2d(_int_conv, _resnet_weights2, name="h_conv_residual"),
+                    name="h_conv")
+                W_conv_intermediate.extend([_resnet_weights1, _resnet_weights2])
+                h_conv_intermediate.append(_output_conv)
+                _current_h_conv = _output_conv
 
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
