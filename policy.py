@@ -93,10 +93,10 @@ class PolicyNetwork(object):
             with tf.name_scope("layer"+str(i)):
                 _resnet_weights1 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet1")
                 _resnet_weights2 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet2")
-                _int_conv = tf.nn.relu(_conv2d(_current_h_conv, _resnet_weights1, name="h_conv_intermediate"))
+                _int_conv = tf.nn.relu(_conv2d(_current_h_conv, _resnet_weights1), name="h_conv_intermediate")
                 _output_conv = tf.nn.relu(
                     _current_h_conv +
-                    _conv2d(_int_conv, _resnet_weights2, name="h_conv_residual"),
+                    _conv2d(_int_conv, _resnet_weights2),
                     name="h_conv")
                 W_conv_intermediate.extend([_resnet_weights1, _resnet_weights2])
                 h_conv_intermediate.append(_output_conv)
@@ -120,7 +120,7 @@ class PolicyNetwork(object):
 
         weight_summaries = tf.summary.merge([
             tf.summary.histogram(weight_var.name, weight_var)
-            for weight_var in [W_conv_init] +  W_conv_intermediate + [W_conv_final, b_conv_final]],
+            for weight_var in [W_conv_init55, W_conv_init11] +  W_conv_intermediate + [W_conv_final, b_conv_final]],
             name="weight_summaries"
         )
         activation_summaries = tf.summary.merge([
