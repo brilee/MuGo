@@ -32,7 +32,7 @@ import utils
 EPSILON = 1e-35
 
 class PolicyNetwork(object):
-    def __init__(self, features=features.DEFAULT_FEATURES, k=32, num_int_conv_layers=3, use_cpu=False):
+    def __init__(self, features=features.DEFAULT_FEATURES, k=128, num_int_conv_layers=11, use_cpu=False):
         self.num_input_planes = sum(f.planes for f in features)
         self.features = features
         self.k = k
@@ -89,7 +89,10 @@ class PolicyNetwork(object):
 
         log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
+        # AdamOptimizer is faster at start but gets really spiky after 2-3 million steps.
+        # train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
+        learning_rate = tf.train.exponential_decay(1e-2, global_step, 4 * 10 ** 6, 0.5)
+        train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(log_likelihood_cost, global_step=global_step)
         was_correct = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
