@@ -67,6 +67,9 @@ class PolicyNetwork(object):
         global_step = tf.Variable(0, name="global_step", trainable=False)
         x = tf.placeholder(tf.float32, [None, go.N, go.N, self.num_input_planes])
         y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
+        # whether this example should be positively or negatively reinforced.
+        # Set to 1 for positive, -1 for negative.
+        reinforce = tf.placeholder(tf.float32, shape=[])
 
         #convenience functions for initializing weights and biases
         def _weight_variable(shape, name):
@@ -109,7 +112,7 @@ class PolicyNetwork(object):
         output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
         logits = tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final
 
-        log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
+        log_likelihood_cost = reinforce * tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
 
         # AdamOptimizer is faster at start but gets really spiky after 2-3 million steps.
         # train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
@@ -158,7 +161,7 @@ class PolicyNetwork(object):
             batch_x, batch_y = training_data.get_batch(batch_size)
             _, accuracy, cost = self.session.run(
                 [self.train_step, self.accuracy, self.log_likelihood_cost],
-                feed_dict={self.x: batch_x, self.y: batch_y})
+                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce: 1})
             self.training_stats.report(accuracy, cost)
 
         avg_accuracy, avg_cost, accuracy_summaries = self.training_stats.collect()
@@ -167,7 +170,7 @@ class PolicyNetwork(object):
         if self.training_summary_writer is not None:
             activation_summaries = self.session.run(
                 self.activation_summaries,
-                feed_dict={self.x: batch_x, self.y: batch_y})
+                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce: 1})
             self.training_summary_writer.add_summary(activation_summaries, global_step)
             self.training_summary_writer.add_summary(accuracy_summaries, global_step)
 
@@ -186,7 +189,7 @@ class PolicyNetwork(object):
             batch_x, batch_y = test_data.get_batch(batch_size)
             accuracy, cost = self.session.run(
                 [self.accuracy, self.log_likelihood_cost],
-                feed_dict={self.x: batch_x, self.y: batch_y})
+                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce: 1})
             self.test_stats.report(accuracy, cost)
 
         avg_accuracy, avg_cost, accuracy_summaries = self.test_stats.collect()
