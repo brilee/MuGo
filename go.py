@@ -262,9 +262,9 @@ class Position():
 
     def __str__(self):
         pretty_print_map = {
-            WHITE: 'O',
-            EMPTY: '.',
-            BLACK: 'X',
+            WHITE: '\x1b[0;31;47mO',
+            EMPTY: '\x1b[0;31;43m.',
+            BLACK: '\x1b[0;31;40mX',
             FILL: '#',
             KO: '*',
         }
@@ -278,6 +278,7 @@ class Position():
             for j in range(N):
                 appended = '<' if (self.recent and (i, j) == self.recent[-1].move) else ' '
                 row.append(pretty_print_map[board[i,j]] + appended)
+                row.append('\x1b[0m')
             raw_board_contents.append(''.join(row))
 
         row_labels = ['%2d ' % i for i in range(N, 0, -1)]
