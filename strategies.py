@@ -51,44 +51,7 @@ def select_weighted_random(position, move_probabilities):
         return select_most_likely(position, move_probabilities)
 
 
-class GtpInterface(object):
-    def __init__(self):
-        self.size = 9
-        self.position = None
-        self.komi = 6.5
-        self.clear()
-
-    def set_size(self, n):
-        self.size = n
-        go.set_board_size(n)
-        self.clear()
-
-    def set_komi(self, komi):
-        self.komi = komi
-        self.position.komi = komi
-
-    def clear(self):
-        self.position = go.Position(komi=self.komi)
-
-    def accomodate_out_of_turn(self, color):
-        if not translate_gtp_colors(color) == self.position.to_play:
-            self.position.flip_playerturn(mutate=True)
-
-    def make_move(self, color, vertex):
-        coords = utils.parse_pygtp_coords(vertex)
-        self.accomodate_out_of_turn(color)
-        self.position = self.position.play_move(coords, color=translate_gtp_colors(color))
-        return self.position is not None
-
-    def get_move(self, color):
-        self.accomodate_out_of_turn(color)
-        move = self.suggest_move(self.position)
-        return utils.unparse_pygtp_coords(move)
-
-    def suggest_move(self, position):
-        raise NotImplementedError
-
-class RandomPlayer(GtpInterface):
+class RandomPlayerMixin:
     def suggest_move(self, position):
         possible_moves = go.ALL_COORDS[:]
         random.shuffle(possible_moves)
@@ -97,7 +60,7 @@ class RandomPlayer(GtpInterface):
                 return move
         return None
 
-class PolicyNetworkBestMovePlayer(GtpInterface):
+class GreedyPolicyPlayerMixin:
     def __init__(self, policy_network, read_file):
         self.policy_network = policy_network
         self.read_file = read_file
@@ -113,13 +76,10 @@ class PolicyNetworkBestMovePlayer(GtpInterface):
         self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
-        if position.recent and position.n > 100 and position.recent[-1].move == None:
-            # Pass if the opponent passes
-            return None
         move_probabilities = self.policy_network.run(position)
         return select_most_likely(position, move_probabilities)
 
-class PolicyNetworkRandomMovePlayer(GtpInterface):
+class RandomPolicyPlayerMixin:
     def __init__(self, policy_network, read_file):
         self.policy_network = policy_network
         self.read_file = read_file
@@ -135,9 +95,6 @@ class PolicyNetworkRandomMovePlayer(GtpInterface):
         self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
-        if position.recent and position.n > 100 and position.recent[-1].move == None:
-            # Pass if the opponent passes
-            return None
         move_probabilities = self.policy_network.run(position)
         return select_weighted_random(position, move_probabilities)
 
@@ -213,7 +170,7 @@ class MCTSNode():
         return current
 
 
-class MCTS(GtpInterface):
+class MCTSPlayerMixin:
     def __init__(self, policy_network, read_file, seconds_per_move=5):
         self.policy_network = policy_network
         self.seconds_per_move = seconds_per_move

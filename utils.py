@@ -43,8 +43,6 @@ def parse_pygtp_coords(vertex):
     return go.N - vertex[1], vertex[0] - 1
 
 def unparse_pygtp_coords(c):
-    if c == gtp.RESIGN:
-        return gtp.RESIGN
     if c is None:
         return gtp.PASS
     return c[1] + 1, go.N - c[0]

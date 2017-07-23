@@ -7,10 +7,7 @@ import re
 import sys
 import time
 
-import gtp as gtp_lib
-
-from policy import PolicyNetwork
-from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, PolicyNetworkRandomMovePlayer, MCTS
+from gtp_wrapper import make_gtp_instance
 from load_data_sets import DataSet, parse_data_sets
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
@@ -24,22 +21,13 @@ def timer(message):
 
 
 def gtp(strategy, read_file=None):
-    n = PolicyNetwork(use_cpu=True)
-    if strategy == 'random':
-        instance = RandomPlayer()
-    elif strategy == 'policy':
-        instance = PolicyNetworkBestMovePlayer(n, read_file)
-    elif strategy == 'randompolicy':
-        instance = PolicyNetworkRandomMovePlayer(n, read_file)
-    elif strategy == 'mcts':
-        instance = MCTS(n, read_file)
-    else:
+    engine = make_gtp_instance(strategy, read_file)
+    if engine is None:
         sys.stderr.write("Unknown strategy")
         sys.exit()
-    gtp_engine = gtp_lib.Engine(instance)
     sys.stderr.write("GTP engine ready\n")
     sys.stderr.flush()
-    while not gtp_engine.disconnect:
+    while not engine.disconnect:
         inpt = input()
         # handle either single lines at a time
         # or multiple commands separated by '\n'
@@ -48,7 +36,7 @@ def gtp(strategy, read_file=None):
         except:
             cmd_list = [inpt]
         for cmd in cmd_list:
-            engine_reply = gtp_engine.send(cmd)
+            engine_reply = engine.send(cmd)
             sys.stdout.write(engine_reply)
             sys.stdout.flush()
 
