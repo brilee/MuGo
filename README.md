@@ -48,9 +48,9 @@ tensorboard --logdir=logs/
 
 Play against MuGo
 -----------------
-MuGo uses the GTP protocol, and you can use any gtp-compliant program with it. To invoke the raw policy network, use
+MuGo uses the GTP protocol, and you can use any gtp-compliant program with it. A pretrained model is included under saved_models. To invoke the raw policy network via GTP protocol, use
 ```
-python main.py gtp policy --read-file=/tmp/savedmodel
+python main.py gtp policy --read-file=saved_models/20170718
 ```
 
 To invoke the MCTS-integrated version of the policy network, use
@@ -58,15 +58,17 @@ To invoke the MCTS-integrated version of the policy network, use
 python main.py gtp mcts --read-file=/tmp/savedmodel
 ```
 
+The MCTS version of MuGo is much slower and not that much better than just the raw policy network, because Python is slow at simulating full games. 
+
 One way to play via GTP is to use gogui-display (which implements a UI that speaks GTP.) You can download the gogui set of tools at [http://gogui.sourceforge.net/](http://gogui.sourceforge.net/). See also [documentation on interesting ways to use GTP](http://gogui.sourceforge.net/doc/reference-twogtp.html).
 ```
-gogui-twogtp -black 'python main.py gtp policy --read-file=/tmp/savedmodel' -white 'gogui-display' -size 19 -komi 7.5 -verbose -auto
+gogui-twogtp -black 'python main.py gtp policy --read-file=saved_models/20170718' -white 'gogui-display' -size 19 -komi 7.5 -verbose -auto
 ```
 
 Another way to play via GTP is to play against GnuGo, while spectating the games
 ```
 BLACK="gnugo --mode gtp"
-WHITE="python main.py gtp policy --read-file=/tmp/savedmodel"
+WHITE="python main.py gtp policy --read-file=saved_models/20170718"
 TWOGTP="gogui-twogtp -black \"$BLACK\" -white \"$WHITE\" -games 10 \
   -size 19 -alternate -sgffile gnugo"
 gogui -size 19 -program "$TWOGTP" -computer-both -auto
