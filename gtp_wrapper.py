@@ -55,7 +55,8 @@ class GtpInterface(object):
         return utils.unparse_pygtp_coords(move)
 
     def should_resign(self, position):
-        return False
+        if position.caps[0] + 50 < position.caps[1]:
+            return gtp.RESIGN
 
     def should_pass(self, position):
         # Pass if the opponent passes
@@ -70,17 +71,16 @@ class GreedyPolicyPlayer(GreedyPolicyPlayerMixin, GtpInterface): pass
 class MCTSPlayer(MCTSPlayerMixin, GtpInterface): pass
 
 def make_gtp_instance(strategy_name, read_file):
+    n = PolicyNetwork(use_cpu=True)
+    n.initialize_variables(read_file)
     if strategy_name == 'random':
         instance = RandomPlayer()
     elif strategy_name == 'policy':
-        n = PolicyNetwork(use_cpu=True)
-        instance = GreedyPolicyPlayer(n, read_file)
+        instance = GreedyPolicyPlayer(n)
     elif strategy_name == 'randompolicy':
-        n = PolicyNetwork(use_cpu=True)
-        instance = RandomPolicyPlayer(n, read_file)
+        instance = RandomPolicyPlayer(n)
     elif strategy_name == 'mcts':
-        n = PolicyNetwork(use_cpu=True)
-        instance = MCTSPlayer(n, read_file)
+        instance = MCTSPlayer(n)
     else:
         return None
     gtp_engine = gtp.Engine(instance)

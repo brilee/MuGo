@@ -14,15 +14,8 @@ def sorted_moves(probability_array):
     coords = [(a, b) for a in range(go.N) for b in range(go.N)]
     return sorted(coords, key=lambda c: probability_array[c], reverse=True)
 
-def translate_gtp_colors(gtp_color):
-    if gtp_color == gtp.BLACK:
-        return go.BLACK
-    elif gtp_color == gtp.WHITE:
-        return go.WHITE
-    else:
-        return go.EMPTY
-
 def is_move_reasonable(position, move):
+    # A move is reasonable if it is legal and doesn't fill in your own eyes.
     return position.is_move_legal(move) and go.is_eyeish(position.board, move) != position.to_play
 
 def select_most_likely(position, move_probabilities):
@@ -61,43 +54,25 @@ class RandomPlayerMixin:
         return None
 
 class GreedyPolicyPlayerMixin:
-    def __init__(self, policy_network, read_file):
+    def __init__(self, policy_network):
         self.policy_network = policy_network
-        self.read_file = read_file
         super().__init__()
-
-    def clear(self):
-        super().clear()
-        self.refresh_network()
-
-    def refresh_network(self):
-        # Ensure that the player is using the latest version of the network
-        # so that the network can be continually trained even as it's playing.
-        self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
         move_probabilities = self.policy_network.run(position)
         return select_most_likely(position, move_probabilities)
 
 class RandomPolicyPlayerMixin:
-    def __init__(self, policy_network, read_file):
+    def __init__(self, policy_network):
         self.policy_network = policy_network
-        self.read_file = read_file
         super().__init__()
-
-    def clear(self):
-        super().clear()
-        self.refresh_network()
-
-    def refresh_network(self):
-        # Ensure that the player is using the latest version of the network
-        # so that the network can be continually trained even as it's playing.
-        self.policy_network.initialize_variables(self.read_file)
 
     def suggest_move(self, position):
         move_probabilities = self.policy_network.run(position)
         return select_weighted_random(position, move_probabilities)
 
+# All terminology here (Q, U, N, p_UCT) uses the same notation as in the
+# AlphaGo paper.
 # Exploration constant
 c_PUCT = 5
 
@@ -156,6 +131,8 @@ class MCTSNode():
             # No point in updating Q / U values for root, since they are
             # used to decide between children nodes.
             return
+        # This incrementally calculates node.Q = average(Q of children),
+        # given the newest Q value and the previous average of N-1 values.
         self.Q, self.U = (
             self.Q + (value - self.Q) / self.N,
             c_PUCT * math.sqrt(self.parent.N) * self.prior / self.N,
@@ -171,33 +148,24 @@ class MCTSNode():
 
 
 class MCTSPlayerMixin:
-    def __init__(self, policy_network, read_file, seconds_per_move=5):
+    def __init__(self, policy_network, seconds_per_move=5):
         self.policy_network = policy_network
         self.seconds_per_move = seconds_per_move
         self.max_rollout_depth = go.N * go.N * 3
-        self.read_file = read_file
         super().__init__()
 
-    def clear(self):
-        super().clear()
-        self.refresh_network()
-
-    def refresh_network(self):
-        # Ensure that the player is using the latest version of the network
-        # so that the network can be continually trained even as it's playing.
-        self.policy_network.initialize_variables(self.read_file)
-
     def suggest_move(self, position):
-        if position.caps[0] + 50 < position.caps[1]:
-            return gtp.RESIGN
         start = time.time()
         move_probs = self.policy_network.run(position)
         root = MCTSNode.root_node(position, move_probs)
         while time.time() - start < self.seconds_per_move:
             self.tree_search(root)
-        # there's a theoretical bug here: if you refuse to pass, this AI will
-        # eventually start filling in its own eyes.
-        return max(root.children.keys(), key=lambda move, root=root: root.children[move].N)
+        print("Searched for %s seconds" % (time.time() - start), file=sys.stderr)
+        sorted_moves = sorted(root.children.keys(), key=lambda move, root=root: root.children[move].N, reverse=True)
+        for move in sorted_moves:
+            if is_move_reasonable(position, move):
+                return move
+        return None
 
     def tree_search(self, root):
         print("tree search", file=sys.stderr)
@@ -231,6 +199,7 @@ class MCTSPlayerMixin:
                 break
         else:
             print("max rollout depth exceeded!", file=sys.stderr)
+        print(current)
 
         perspective = 1 if leaf_position.to_play == root.position.to_play else -1
         return current.score() * perspective
