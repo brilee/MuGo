@@ -13,7 +13,7 @@ import utils
 # Draw moves from policy net until this threshold, then play moves randomly.
 # This speeds up the simulation, and it also provides a logical cutoff
 # for which moves to include for reinforcement learning.
-POLICY_CUTOFF_DEPTH = int(go.N * go.N * 0.7) # 253 moves for a 19x19
+POLICY_CUTOFF_DEPTH = int(go.N * go.N * 0.75) # 270 moves for a 19x19
 
 def sorted_moves(probability_array):
     coords = [(a, b) for a in range(go.N) for b in range(go.N)]
@@ -65,7 +65,7 @@ def simulate_game(policy1, policy2, position):
     while position.n <= POLICY_CUTOFF_DEPTH:
         policy = policy1 if position.to_play == go.BLACK else policy2
         move_probs = policy.run(position)
-        move = select_most_likely(position, move_probs)
+        move = select_weighted_random(position, move_probs)
         position.play_move(move, mutate=True)
         print(position)
 
@@ -211,6 +211,7 @@ class MCTSPlayerMixin:
         # backup
         print("value: %s" % value, file=sys.stderr)
         chosen_leaf.backup_value(value)
+        sys.stderr.flush()
 
     def estimate_value(self, root, chosen_leaf):
         # Estimate value of position using rollout only (for now).
@@ -218,7 +219,7 @@ class MCTSPlayerMixin:
         leaf_position = chosen_leaf.position
         current = copy.deepcopy(leaf_position)
         simulate_game(self.policy_network, self.policy_network, current)
-        print(current)
+        print(current, file=sys.stderr)
 
         perspective = 1 if leaf_position.to_play == root.position.to_play else -1
         return current.score() * perspective
