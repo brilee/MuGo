@@ -10,13 +10,27 @@ import numpy as np
 import go
 import utils
 
+# Draw moves from policy net until this threshold, then play moves randomly.
+# This speeds up the simulation, and it also provides a logical cutoff
+# for which moves to include for reinforcement learning.
+POLICY_CUTOFF_DEPTH = int(go.N * go.N * 0.7) # 253 moves for a 19x19
+
 def sorted_moves(probability_array):
     coords = [(a, b) for a in range(go.N) for b in range(go.N)]
-    return sorted(coords, key=lambda c: probability_array[c], reverse=True)
+    coords.sort(key=lambda c: probability_array[c], reverse=True)
+    return coords
 
 def is_move_reasonable(position, move):
     # A move is reasonable if it is legal and doesn't fill in your own eyes.
     return position.is_move_legal(move) and go.is_eyeish(position.board, move) != position.to_play
+
+def select_random(position):
+    possible_moves = go.ALL_COORDS[:]
+    random.shuffle(possible_moves)
+    for move in possible_moves:
+        if is_move_reasonable(position, move):
+            return move
+    return None
 
 def select_most_likely(position, move_probabilities):
     for move in sorted_moves(move_probabilities):
@@ -43,15 +57,26 @@ def select_weighted_random(position, move_probabilities):
             position, selected_move))
         return select_most_likely(position, move_probabilities)
 
+def simulate_game(policy1, policy2, position):
+    """Simulates a game starting from a position, using policy networks.
+
+    policy1 is black and policy2 is white.
+    """
+    while position.n <= POLICY_CUTOFF_DEPTH:
+        policy = policy1 if position.to_play == go.BLACK else policy2
+        move_probs = policy.run(position)
+        move = select_most_likely(position, move_probs)
+        position.play_move(move, mutate=True)
+        print(position)
+
+    while not (position.recent[-2].move is None and position.recent[-1].move is None):
+        position.play_move(select_random(position), mutate=True)
+        print(position)
+    return position
 
 class RandomPlayerMixin:
     def suggest_move(self, position):
-        possible_moves = go.ALL_COORDS[:]
-        random.shuffle(possible_moves)
-        for move in possible_moves:
-            if is_move_reasonable(position, move):
-                return move
-        return None
+        return select_random(position)
 
 class GreedyPolicyPlayerMixin:
     def __init__(self, policy_network):
@@ -192,26 +217,9 @@ class MCTSPlayerMixin:
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
         current = copy.deepcopy(leaf_position)
-        while current.n < self.max_rollout_depth:
-            move_probs = self.policy_network.run(current)
-            current = self.play_valid_move(current, move_probs)
-            if len(current.recent) > 2 and current.recent[-1].move == current.recent[-2].move == None:
-                break
-        else:
-            print("max rollout depth exceeded!", file=sys.stderr)
+        simulate_game(self.policy_network, self.policy_network, current)
         print(current)
 
         perspective = 1 if leaf_position.to_play == root.position.to_play else -1
         return current.score() * perspective
 
-    def play_valid_move(self, position, move_probs):
-        for move in sorted_moves(move_probs):
-            if go.is_eyeish(position.board, move):
-                continue
-            try:
-                candidate_pos = position.play_move(move, mutate=True)
-            except go.IllegalMove:
-                continue
-            else:
-                return candidate_pos
-        return position.pass_move(mutate=True)
