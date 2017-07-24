@@ -40,8 +40,11 @@ class GtpInterface(object):
     def make_move(self, color, vertex):
         coords = utils.parse_pygtp_coords(vertex)
         self.accomodate_out_of_turn(color)
-        self.position = self.position.play_move(coords, color=translate_gtp_colors(color))
-        return self.position is not None
+        try:
+            self.position = self.position.play_move(coords, color=translate_gtp_colors(color))
+        except go.IllegalMove:
+            return False
+        return True
 
     def get_move(self, color):
         self.accomodate_out_of_turn(color)
