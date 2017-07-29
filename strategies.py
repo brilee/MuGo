@@ -40,21 +40,13 @@ def select_most_likely(position, move_probabilities):
 
 def select_weighted_random(position, move_probabilities):
     selection = random.random()
-    selected_move = None
-    current_probability = 0
-    # technically, don't have to sort in order to correctly simulate a random
-    # draw, but it cuts down on how many additions we do.
-    for move, move_prob in np.ndenumerate(move_probabilities):
-        current_probability += move_prob
-        if current_probability > selection:
-            selected_move = move
-            break
+    cdf = move_probabilities.cumsum()
+    selected_move = utils.unflatten_coords(
+        cdf.searchsorted(selection, side="right"))
     if is_move_reasonable(position, selected_move):
         return selected_move
     else:
-        # fallback in case the selected move was illegal
-        print("Using fallback move; position was %s\n, selected %s" % (
-            position, selected_move))
+        # inexpensive fallback in case an illegal move is chosen.
         return select_most_likely(position, move_probabilities)
 
 def simulate_game(policy1, policy2, position):
