@@ -14,6 +14,10 @@ import utils
 # This speeds up the simulation, and it also provides a logical cutoff
 # for which moves to include for reinforcement learning.
 POLICY_CUTOFF_DEPTH = int(go.N * go.N * 0.75) # 270 moves for a 19x19
+# However, some situations end up as "dead, but only with correct play".
+# Random play can destroy the subtlety of these situations, so we'll play out
+# a bunch more moves from a smart network before playing out random moves.
+POLICY_FINISH_MOVES = int(go.N * go.N * 0.2) # 72 moves for a 19x19
 
 def sorted_moves(probability_array):
     coords = [(a, b) for a in range(go.N) for b in range(go.N)]
@@ -49,22 +53,47 @@ def select_weighted_random(position, move_probabilities):
         # inexpensive fallback in case an illegal move is chosen.
         return select_most_likely(position, move_probabilities)
 
-def simulate_game(policy1, policy2, position):
-    """Simulates a game starting from a position, using policy networks.
+def simulate_game_random(position):
+    """Simulates a game to termination, using completely random moves"""
+    while not (position.recent[-2].move is None and position.recent[-1].move is None):
+        position.play_move(select_random(position), mutate=True)
 
-    policy1 is black and policy2 is white.
-    """
+def simulate_game(policy, position):
+    """Simulates a game starting from a position, using a policy network"""
     while position.n <= POLICY_CUTOFF_DEPTH:
-        policy = policy1 if position.to_play == go.BLACK else policy2
         move_probs = policy.run(position)
         move = select_weighted_random(position, move_probs)
         position.play_move(move, mutate=True)
-        print(position)
 
-    while not (position.recent[-2].move is None and position.recent[-1].move is None):
-        position.play_move(select_random(position), mutate=True)
-        print(position)
+    simulate_game_random(position)
+
     return position
+
+def simulate_many_games(policy1, policy2, positions):
+    """Simulates many games in parallel, utilizing GPU parallelization to
+    run the policy network for multiple games simultaneously.
+
+    policy1 is black; policy2 is white."""
+
+    # Assumes that all positions are on the same move number. May not be true
+    # if, say, we are exploring multiple MCTS branches in parallel
+    while positions[0].n <= POLICY_CUTOFF_DEPTH + POLICY_FINISH_MOVES:
+        black_to_play = [pos for pos in positions if pos.to_play == go.BLACK]
+        white_to_play = [pos for pos in positions if pos.to_play == go.WHITE]
+
+        for policy, to_play in ((policy1, black_to_play),
+                                (policy2, white_to_play)):
+            all_move_probs = policy.run_many(to_play)
+            for i, pos in enumerate(to_play):
+                move = select_weighted_random(pos, all_move_probs[i])
+                pos.play_move(move, mutate=True)
+                print(pos)
+
+    for pos in positions:
+        simulate_game_random(pos)
+
+    return positions
+
 
 class RandomPlayerMixin:
     def suggest_move(self, position):
@@ -210,7 +239,7 @@ class MCTSPlayerMixin:
         # (TODO: Value network; average the value estimations from rollout + value network)
         leaf_position = chosen_leaf.position
         current = copy.deepcopy(leaf_position)
-        simulate_game(self.policy_network, self.policy_network, current)
+        simulate_game(self.policy_network, current)
         print(current, file=sys.stderr)
 
         perspective = 1 if leaf_position.to_play == root.position.to_play else -1

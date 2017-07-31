@@ -46,9 +46,8 @@ import utils
 EPSILON = 1e-35
 
 class PolicyNetwork(object):
-    def __init__(self, features=features.DEFAULT_FEATURES, k=128, num_int_conv_layers=11, use_cpu=False):
-        self.num_input_planes = sum(f.planes for f in features)
-        self.features = features
+    def __init__(self, k=128, num_int_conv_layers=11, use_cpu=False):
+        self.num_input_planes = sum(f.planes for f in features.DEFAULT_FEATURES)
         self.k = k
         self.num_int_conv_layers = num_int_conv_layers
         self.test_summary_writer = None
@@ -174,12 +173,16 @@ class PolicyNetwork(object):
             self.training_summary_writer.add_summary(activation_summaries, global_step)
             self.training_summary_writer.add_summary(accuracy_summaries, global_step)
 
-
     def run(self, position):
         'Return a sorted list of (probability, move) tuples'
-        processed_position = features.extract_features(position, features=self.features)
+        processed_position = features.extract_features(position)
         probabilities = self.session.run(self.output, feed_dict={self.x: processed_position[None, :]})[0]
         return probabilities.reshape([go.N, go.N])
+
+    def run_many(self, positions):
+        processed_positions = features.bulk_extract_features(positions)
+        probabilities = self.session.run(self.output, feed_dict={self.x:processed_positions})
+        return probabilities.reshape([-1, go.N, go.N])
 
     def check_accuracy(self, test_data, batch_size=128):
         num_minibatches = test_data.data_size // batch_size
