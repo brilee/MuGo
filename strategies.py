@@ -87,7 +87,6 @@ def simulate_many_games(policy1, policy2, positions):
             for i, pos in enumerate(to_play):
                 move = select_weighted_random(pos, all_move_probs[i])
                 pos.play_move(move, mutate=True)
-                print(pos)
 
     for pos in positions:
         simulate_game_random(pos)

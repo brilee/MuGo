@@ -9,6 +9,7 @@ import time
 
 from gtp_wrapper import make_gtp_instance
 from load_data_sets import DataSet, parse_data_sets
+from policy import PolicyNetwork
 
 TRAINING_CHUNK_RE = re.compile(r"train\d+\.chunk.gz")
 
