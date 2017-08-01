@@ -1,6 +1,11 @@
 from collections import defaultdict
+import functools
+import itertools
+import operator
+import random
+import re
 import time
-import functools, operator
+
 import gtp
 import go
 
@@ -47,9 +52,43 @@ def unparse_pygtp_coords(c):
         return gtp.PASS
     return c[1] + 1, go.N - c[0]
 
+def parse_game_result(result):
+    if re.match(r'[bB]\+', result):
+        return go.BLACK
+    elif re.match(r'[wW]\+', result):
+        return go.WHITE
+    else:
+        return None
+
 def product(numbers):
     return functools.reduce(operator.mul, numbers)
 
+def take_n(n, iterable):
+    return list(itertools.islice(iterable, n))
+
+def iter_chunks(chunk_size, iterator):
+    while True:
+        next_chunk = take_n(chunk_size, iterator)
+        # If len(iterable) % chunk_size == 0, don't return an empty chunk.
+        if next_chunk:
+            yield next_chunk
+        else:
+            break
+
+def shuffler(iterator, pool_size=10**5, refill_threshold=0.9):
+    yields_between_refills = round(pool_size * (1 - refill_threshold))
+    # initialize pool; this step may or may not exhaust the iterator.
+    pool = take_n(pool_size, iterator)
+    while True:
+        random.shuffle(pool)
+        for i in range(yields_between_refills):
+            yield pool.pop()
+        next_batch = take_n(yields_between_refills, iterator)
+        if not next_batch:
+            break
+        pool.extend(next_batch)
+    # finish consuming whatever's left - no need for further randomization.
+    yield from pool
 
 class timer(object):
     all_times = defaultdict(float)

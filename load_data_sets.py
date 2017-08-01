@@ -2,7 +2,6 @@ import itertools
 import gzip
 import numpy as np
 import os
-import random
 import struct
 import sys
 
@@ -15,33 +14,6 @@ import utils
 CHUNK_SIZE = 4096
 CHUNK_HEADER_FORMAT = "iii?"
 CHUNK_HEADER_SIZE = struct.calcsize(CHUNK_HEADER_FORMAT)
-
-def take_n(n, iterable):
-    return list(itertools.islice(iterable, n))
-
-def iter_chunks(chunk_size, iterator):
-    while True:
-        next_chunk = take_n(chunk_size, iterator)
-        # If len(iterable) % chunk_size == 0, don't return an empty chunk.
-        if next_chunk:
-            yield next_chunk
-        else:
-            break
-
-def shuffler(iterator, pool_size=10**5, refill_threshold=0.9):
-    yields_between_refills = round(pool_size * (1 - refill_threshold))
-    # initialize pool; this step may or may not exhaust the iterator.
-    pool = take_n(pool_size, iterator)
-    while True:
-        random.shuffle(pool)
-        for i in range(yields_between_refills):
-            yield pool.pop()
-        next_batch = take_n(yields_between_refills, iterator)
-        if not next_batch:
-            break
-        pool.extend(next_batch)
-    # finish consuming whatever's left - no need for further randomization.
-    yield from pool
 
 def make_onehot(coords):
     num_positions = len(coords)
@@ -72,9 +44,9 @@ def split_test_training(positions_w_context, est_num_positions):
         test_size = len(positions_w_context) // 3
         return positions_w_context[:test_size], [positions_w_context[test_size:]]
     else:
-        shuffled_positions = shuffler(positions_w_context)
-        test_chunk = take_n(desired_test_size, shuffled_positions)
-        training_chunks = iter_chunks(CHUNK_SIZE, shuffled_positions)
+        shuffled_positions = utils.shuffler(positions_w_context)
+        test_chunk = utils.take_n(desired_test_size, shuffled_positions)
+        training_chunks = utils.iter_chunks(CHUNK_SIZE, shuffled_positions)
         return test_chunk, training_chunks
 
 

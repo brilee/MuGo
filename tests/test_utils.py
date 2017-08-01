@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import re
 import time
 import unittest
@@ -60,6 +61,20 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(utils.unflatten_coords(80), (8, 8))
         self.assertEqual(utils.flatten_coords(utils.unflatten_coords(10)), 10)
         self.assertEqual(utils.unflatten_coords(utils.flatten_coords((5, 4))), (5, 4))
+
+    def test_shuffler(self):
+        random.seed(1)
+        dataset = (i for i in range(10))
+        shuffled = list(utils.shuffler(
+            dataset, pool_size=5, refill_threshold=0.8))
+        self.assertEqual(len(shuffled), 10)
+        self.assertNotEqual(shuffled, list(range(10)))
+
+    def test_parse_game_result(self):
+        self.assertEqual(utils.parse_game_result('B+3.5'), go.BLACK)
+        self.assertEqual(utils.parse_game_result('W+T'), go.WHITE)
+        self.assertEqual(utils.parse_game_result('Void'), None)
+
 
 
 class GoPositionTestCase(unittest.TestCase):
