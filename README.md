@@ -1,64 +1,36 @@
 MuGo: A minimalist Go engine modeled after AlphaGo
 ==================================================
 
-This is a pure Python implementation of the essential parts of AlphaGo.
+This is a pure Python implementation of a neural-network based Go AI, using TensorFlow.
 
-The logic / control flow of AlphaGo itself is not very complicated and is replicated here. The secret sauce of AlphaGo is in its various neural networks.
+Currently, the AI consists solely of a policy network, trained using supervised learning. I have implemented Monte Carlo Tree Search, but the simulations are too slow, due to being written in Python. I am hoping to bypass this issue entirely by replacing the simulations with a value network which will take one NN evaluation. (After all, random simulations are but a crude approximation to a value function, so if you have a good enough value function, you won't need a playout...)
 
-(As I understand it) AlphaGo uses three neural networks during play. The first NN is a slow but accurate policy network. This network is trained to predict human moves (~57% accuracy), and it outputs a list of plausible moves, with probabilities attached to each move. This first NN is used to seed the Monte Carlo tree search with plausible moves. One of the reasons this first NN is slow is because of its size, and because the inputs to the neural network are various expensive-to-compute properties of the Go board (liberty counts; ataris; ladder status; etc.). The second NN is a smaller, faster but less accurate (~24% accuracy) policy network, and doesn't use computed properties as input. Once a leaf node of the current MCTS tree is reached, the second faster network is used to play the position out to the end with vaguely plausible moves, and score the end position. The third NN is a value network: it outputs an expected win margin for that board, without attempting to play anything out. The results of the monte carlo playout using NN #2 and the value calculation using NN #3 are averaged, and this value is recorded as the approximate result for that MCTS node.
-
-Using the priors from NN #1 and the accumulating results of MCTS, a new path is chosen for further Monte Carlo exploration.
+The goal of this project is to see how strong a Go AI based purely on neural networks can be. In other words, a UCT-based tree search with moves seeded by a policy network, and a value network to evaluate the choices. An explicit non-goal is diving into the fiddly bits of optimizing Monte Carlo simulations.
 
 Getting Started
 ===============
 
 Install Tensorflow
 ------------------
-Start by installing Tensorflow along with GPU drivers (i.e. CUDA support for Nvidia cards).
+Start by installing Tensorflow. This should be as simple as
 
-Get SGFs for supervised learning
---------------------------------
-Second, find a source of SGF files. You can find 15 years of KGS high-dan games at [u-go.net](https://u-go.net/gamerecords/). Alternately, you can download a database of professional games from a variety of sources.
-
-Preprocess SGFs
----------------
-Third, preprocess the SGF files. This takes all positions in the SGF files and extracts features for each position, as well as recording the correct next move. These positions are then split into chunks, with one test chunk and the remainder as training chunks. This step may take a while, and must be repeated if you change the feature extraction steps in `features.py`
-```
-python main.py preprocess data/kgs-*
-```
-(This example takes advantage of bash wildcard expansion - say, if the KGS directories are named data/kgs-2006-01, data/kgs-2006-02, and so on.)
-
-Supervised learning (policy network)
-------------------------------------
-With the preprocessed SGF data (default output directory is `./processed_data/`), you can train the policy network.
-```
-python main.py train processed_data/ --save-file=/tmp/savedmodel --epochs=1 --logdir=logs/my_training_run
+```python
+pip install -r requirements.txt
 ```
 
-As the network is trained, the current model will be saved at `--save-file`. You can resume training the same network as follows:
-```
-python main.py train processed_data/ --read-file=/tmp/savedmodel
- --save-file=/tmp/savedmodel --epochs=10 --logdir=logs/my_training_run
-```
-
-Additionally, you can follow along with the training progress with TensorBoard - if you give each run a different name (`logs/my_training_run`, `logs/my_training_run2`), you can overlay the runs on top of each other.
-```
-tensorboard --logdir=logs/
-```
+Optionally, you can install TensorFlow with GPU support, if you intend on training a network yourself. 
 
 Play against MuGo
------------------
-MuGo uses the GTP protocol, and you can use any gtp-compliant program with it. A pretrained model is included under saved_models. To invoke the raw policy network via GTP protocol, use
+=================
+
+If you just want to get MuGo working, you can download a pretrained network from [Releases](https://github.com/brilee/MuGo/releases). You will have to be sure to match the code version with the version specified in the release, or else the neural network configuration may not line up correctly - `git checkout v0.1`, replace with version as appropriate.
+
+MuGo uses the GTP protocol, and you can use any gtp-compliant program with it. To invoke the raw policy network, use
 ```
 python main.py gtp policy --read-file=saved_models/20170718
 ```
 
-To invoke the MCTS-integrated version of the policy network, use
-```
-python main.py gtp mcts --read-file=/tmp/savedmodel
-```
-
-The MCTS version of MuGo is much slower and not that much better than just the raw policy network, because Python is slow at simulating full games. 
+(An MCTS version of MuGo has been implemented, using the policy network to simulate games, but it's not that much better than just the raw policy network, because Python is slow at simulating full games.)
 
 One way to play via GTP is to use gogui-display (which implements a UI that speaks GTP.) You can download the gogui set of tools at [http://gogui.sourceforge.net/](http://gogui.sourceforge.net/). See also [documentation on interesting ways to use GTP](http://gogui.sourceforge.net/doc/reference-twogtp.html).
 ```
@@ -78,6 +50,36 @@ Another way to play via GTP is to connect to CGOS, the [Computer Go Online Serve
 
 After configuring your cgos.config file, you can connect to CGOS with `cgosGtp -c cgos.config` and spectate your own game with `cgosView yss-aya.com 6819`
 
+Training MuGo
+=============
+
+Get SGFs for supervised learning
+--------------------------------
+You can find 15 years of KGS high-dan games at [u-go.net](https://u-go.net/gamerecords/). A database of Tygem 9d games is also out there, and finally, a database of professional games can be purchased from a variety of sources.
+
+Preprocess SGFs
+---------------
+To use the game data for training, the game positions must first be processed into feature planes describing location of stones, liberty counts, and so on, as well as noting the correct location of the next move.
+
+```
+python main.py preprocess data/kgs-*
+```
+
+This will generate a series of data chunks and will take a while. It must be repeated if you change the feature extraction steps in `features.py` (This example takes advantage of bash wildcard expansion - say, if the KGS directories are named data/kgs-2006-01, data/kgs-2006-02, and so on.)
+
+Supervised learning (policy network)
+------------------------------------
+With the preprocessed SGF data (default output directory is `./processed_data/`), you can train the policy network.
+```
+python main.py train processed_data/ --save-file=/tmp/savedmodel --epochs=1 --logdir=logs/my_training_run
+```
+
+As the network is trained, the current model will be saved at `--save-file`. If you reexecute the same command, the network will pick up training where it left off.
+
+Additionally, you can follow along with the training progress with TensorBoard - if you give each run a different name (`logs/my_training_run`, `logs/my_training_run2`), you can overlay the runs on top of each other.
+```
+tensorboard --logdir=logs/
+```
 
 Running unit tests
 ------------------
