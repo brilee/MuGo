@@ -35,10 +35,18 @@ import utils
 EPSILON = 1e-35
 
 class PolicyNetwork(object):
-    def __init__(self, k=128, num_int_conv_layers=11, use_cpu=False):
+    def __init__(self,
+                 k=128,
+                 fc_width=1000,
+                 num_shared_res_layers=8,
+                 num_policy_res_layers=3,
+                 num_value_fc_layers=3,
+                 use_cpu=False):
         self.num_input_planes = sum(f.planes for f in features.DEFAULT_FEATURES)
         self.k = k
-        self.num_int_conv_layers = num_int_conv_layers
+        self.fc_width = fc_width
+        self.num_shared_res_layers = num_shared_res_layers
+        self.num_policy_res_layers = num_policy_res_layers
         self.test_summary_writer = None
         self.training_summary_writer = None
         self.test_stats = StatisticsCollector()
@@ -55,7 +63,8 @@ class PolicyNetwork(object):
         global_step = tf.Variable(0, name="global_step", trainable=False)
         RL_global_step = tf.Variable(0, name="RL_global_step", trainable=False)
         x = tf.placeholder(tf.float32, [None, go.N, go.N, self.num_input_planes])
-        y = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
+        move = tf.placeholder(tf.float32, shape=[None, go.N ** 2])
+        outcome = tf.placeholder(tf.float32, shape=[None])
         # whether this example should be positively or negatively reinforced.
         # Set to 1 for positive, -1 for negative.
         reinforce_direction = tf.placeholder(tf.float32, shape=[])
@@ -72,55 +81,108 @@ class PolicyNetwork(object):
         def _conv2d(x, W):
             return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding="SAME")
 
+        def _res_layer(x, layer_name):
+            with tf.name_scope(layer_name):
+                resnet_weights1 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet1")
+                resnet_weights2 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet2")
+                int_conv = tf.nn.relu(
+                    _conv2d(x, resnet_weights1),
+                    name="h_conv_intermediate")
+                output = tf.nn.relu(
+                    x + _conv2d(int_conv, resnet_weights2),
+                    name="h_conv")
+            return output, [resnet_weights1, resnet_weights2]
+
+        def _fc_layer(x, layer_name):
+            with tf.name_scope(layer_name):
+                fc_weights = _weight_variable([x.get_shape()[-1], self.fc_width], name="W_fc")
+                fc_biases = tf.Variable(tf.zeros([self.fc_width]), name="bias_fc")
+                output = tf.nn.relu(
+                    tf.matmul(x, fc_weights, name="h_fc") + fc_biases)
+            return output, [fc_weights, fc_biases]
+
+
+        # Keep track of all weights and activations, for debugging purposes.
+        weight_vars = []
+        activation_values = []
+
         # initial conv layer is 5x5
         W_conv_init55 = _weight_variable([5, 5, self.num_input_planes, self.k], name="W_conv_init55")
         W_conv_init11 = _weight_variable([1, 1, self.num_input_planes, self.k], name="W_conv_init11")
-        h_conv_init = tf.nn.relu(_conv2d(x, W_conv_init55) + _conv2d(x, W_conv_init11), name="h_conv_init")
+        h_conv_init = tf.nn.relu(
+            tf.concat(
+                [_conv2d(x, W_conv_init55), _conv2d(x, W_conv_init11)], 3),
+            name="h_conv_init")
+        weight_vars.extend([W_conv_init55, W_conv_init11])
+        activation_values.append(h_conv_init)
 
-        # followed by a series of resnet 3x3 conv layers
-        W_conv_intermediate = []
-        h_conv_intermediate = []
-        _current_h_conv = h_conv_init
-        for i in range(self.num_int_conv_layers):
-            with tf.name_scope("layer"+str(i)):
-                _resnet_weights1 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet1")
-                _resnet_weights2 = _weight_variable([3, 3, self.k, self.k], name="W_conv_resnet2")
-                _int_conv = tf.nn.relu(_conv2d(_current_h_conv, _resnet_weights1), name="h_conv_intermediate")
-                _output_conv = tf.nn.relu(
-                    _current_h_conv +
-                    _conv2d(_int_conv, _resnet_weights2),
-                    name="h_conv")
-                W_conv_intermediate.extend([_resnet_weights1, _resnet_weights2])
-                h_conv_intermediate.append(_output_conv)
-                _current_h_conv = _output_conv
+        # followed by a series of shared resnet 3x3 conv layers
+        _current_h = h_conv_init
+        for i in range(self.num_shared_res_layers):
+            _current_h, _resnet_weights = _res_layer(
+                _current_h, "shared_layer" + str(i))
+            weight_vars.extend(_resnet_weights)
+            activation_values.append(_current_h)
+
+        # here, the NN branches, feeding into two outputs: policy, value
+        last_shared_activation = _current_h
+
+        # policy half
+        _current_h = last_shared_activation
+        for i in range(self.num_policy_res_layers):
+            _current_h, _resnet_weights = _res_layer(
+                _current_h, "policy_layer" + str(i))
+            weight_vars.extend(_resnet_weights)
+            activation_values.append(_current_h)
 
         W_conv_final = _weight_variable([1, 1, self.k, 1], name="W_conv_final")
         b_conv_final = tf.Variable(tf.constant(0, shape=[go.N ** 2], dtype=tf.float32), name="b_conv_final")
-        h_conv_final = _conv2d(h_conv_intermediate[-1], W_conv_final)
+        h_conv_final = _conv2d(_current_h_conv, W_conv_final)
+        weight_vars.append(W_conv_final)
+        activation_values.append(h_conv_final)
 
-        output = tf.nn.softmax(tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final)
         logits = tf.reshape(h_conv_final, [-1, go.N ** 2]) + b_conv_final
+        policy_output = tf.nn.softmax(logits)
 
-        log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y))
+        # value half
+        _current_h = last_shared_activation.reshape([-1, go.N * go.N * self.k])
+        for i in range(self.num_value_fc_layers):
+            _current_h, _fc_vars = _fc_layer(
+                _current_h, "value_layer" + str(i))
+            weight_vars.extend(_fc_vars)
+            activation_values.append(_current_h)
 
-        # AdamOptimizer is faster at start but gets really spiky after 2-3 million steps.
-        # train_step = tf.train.AdamOptimizer(1e-4).minimize(log_likelihood_cost, global_step=global_step)
+        W_fc_final = _weight_variable([self.fc_width, 1], name="W_fc_final")
+        b_fc_final = tf.Variable(0, name="bias_fc_final")
+        value_output = tf.nn.tanh(
+            tf.matmul(_current_h, W_fc_final) + b_fc_final).reshape([-1])
+
+        # training ops
+        # policy training
+        log_likelihood_cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=move))
         learning_rate = tf.train.exponential_decay(1e-2, global_step, 4 * 10 ** 6, 0.5)
-        train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(log_likelihood_cost, global_step=global_step)
-        was_correct = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+        policy_train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(log_likelihood_cost, global_step=global_step)
+        policy_reinforce_step = tf.train.GradientDescentOptimizer(1e-2).minimize(
+            log_likelihood_cost * reinforce_direction, global_step=RL_global_step)
+
+        # value training
+        mse_cost = tf.reduce_mean(tf.square(value_output - outcome))
+        value_train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(mse_cost, global_step=global_step)
+
+        # misc ops
+        was_correct = tf.equal(tf.argmax(logits, 1), tf.argmax(move, 1))
         accuracy = tf.reduce_mean(tf.cast(was_correct, tf.float32))
 
-        reinforce_step = tf.train.GradientDescentOptimizer(1e-2).minimize(
-            log_likelihood_cost * reinforce_direction, global_step=RL_global_step)
 
         weight_summaries = tf.summary.merge([
             tf.summary.histogram(weight_var.name, weight_var)
-            for weight_var in [W_conv_init55, W_conv_init11] +  W_conv_intermediate + [W_conv_final, b_conv_final]],
+            for weight_var in weight_vars],
             name="weight_summaries"
         )
+
         activation_summaries = tf.summary.merge([
             tf.summary.histogram(act_var.name, act_var)
-            for act_var in [h_conv_init] + h_conv_intermediate + [h_conv_final]],
+            for act_var in activation_values],
             name="activation_summaries"
         )
         saver = tf.train.Saver()
@@ -172,8 +234,8 @@ class PolicyNetwork(object):
         for i in range(num_minibatches):
             batch_x, batch_y = training_data.get_batch(batch_size)
             _, accuracy, cost = self.session.run(
-                [self.train_step, self.accuracy, self.log_likelihood_cost],
-                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce_direction: 1})
+                [self.policy_train_step, self.accuracy, self.log_likelihood_cost],
+                feed_dict={self.x: batch_x, self.move: batch_y, self.reinforce_direction: 1})
             self.training_stats.report(accuracy, cost)
 
         avg_accuracy, avg_cost, accuracy_summaries = self.training_stats.collect()
@@ -182,7 +244,7 @@ class PolicyNetwork(object):
         if self.training_summary_writer is not None:
             activation_summaries = self.session.run(
                 self.activation_summaries,
-                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce_direction: 1})
+                feed_dict={self.x: batch_x, self.move: batch_y, self.reinforce_direction: 1})
             self.training_summary_writer.add_summary(activation_summaries, global_step)
             self.training_summary_writer.add_summary(accuracy_summaries, global_step)
 
@@ -191,8 +253,8 @@ class PolicyNetwork(object):
         for i in range(num_minibatches):
             batch_x, batch_y = dataset.get_batch(batch_size)
             self.session.run(
-                self.reinforce_step,
-                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce_direction: direction})
+                self.policy_reinforce_step,
+                feed_dict={self.x: batch_x, self.move: batch_y, self.reinforce_direction: direction})
 
     def run(self, position):
         'Return a sorted list of (probability, move) tuples'
@@ -213,7 +275,7 @@ class PolicyNetwork(object):
             batch_x, batch_y = test_data.get_batch(batch_size)
             accuracy, cost = self.session.run(
                 [self.accuracy, self.log_likelihood_cost],
-                feed_dict={self.x: batch_x, self.y: batch_y, self.reinforce_direction: 1})
+                feed_dict={self.x: batch_x, self.move: batch_y, self.reinforce_direction: 1})
             self.test_stats.report(accuracy, cost)
 
         avg_accuracy, avg_cost, accuracy_summaries = self.test_stats.collect()
