@@ -1,3 +1,9 @@
+Update
+======
+
+This repo is abandoned as of mid-2017. The code at https://github.com/tensorflow/minigo is a continuation of the work here.
+
+
 MuGo: A minimalist Go engine modeled after AlphaGo
 ==================================================
 
