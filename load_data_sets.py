@@ -49,13 +49,15 @@ def get_positions_from_sgf(file):
                 yield position_w_context
 
 def split_test_training(positions_w_context, est_num_positions):
-    print("Estimated number of chunks: %s" % (est_num_positions // CHUNK_SIZE), file=sys.stderr)
     desired_test_size = 10**5
     if est_num_positions < 2 * desired_test_size:
-        positions_w_context = list(positions_w_context)
+        print("Not enough data to have a full test set. Splitting 67:33")
+        positions_w_context = list(tqdm.tqdm(positions_w_context))
         test_size = len(positions_w_context) // 3
         return positions_w_context[:test_size], [positions_w_context[test_size:]]
     else:
+        print("Estimated number of chunks: %s" % (
+            (est_num_positions - desired_test_size) // CHUNK_SIZE), file=sys.stderr)
         test_chunk = take_n(desired_test_size, positions_w_context)
         training_chunks = iter_chunks(CHUNK_SIZE, positions_w_context)
         return test_chunk, training_chunks
@@ -130,6 +132,8 @@ class DataSet(object):
         return DataSet(pos_features, next_moves, [], is_test=is_test)
 
 def parse_data_sets(*data_sets):
+    print("Searching the following directories {} for SGFS".format('\n'.join(
+        data_sets)))
     sgf_files = list(find_sgf_files(*data_sets))
     print("%s sgfs found." % len(sgf_files), file=sys.stderr)
     est_num_positions = len(sgf_files) * 200 # about 200 moves per game

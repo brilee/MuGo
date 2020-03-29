@@ -1,5 +1,4 @@
 import argparse
-import argh
 from contextlib import contextmanager
 import os
 import random
@@ -7,7 +6,9 @@ import re
 import sys
 import time
 
+import argh
 import gtp as gtp_lib
+import tqdm
 
 from policy import PolicyNetwork
 from strategies import RandomPlayer, PolicyNetworkBestMovePlayer, PolicyNetworkRandomMovePlayer, MCTS
@@ -65,10 +66,9 @@ def preprocess(*data_sets, processed_dir="processed_data"):
     test_filename = os.path.join(processed_dir, "test.chunk.gz")
     test_dataset.write(test_filename)
 
+    print("Writing training chunks")
     training_datasets = map(DataSet.from_positions_w_context, training_chunks)
-    for i, train_dataset in enumerate(training_datasets):
-        if i % 10 == 0:
-            print("Writing training chunk %s" % i)
+    for i, train_dataset in tqdm.tqdm(enumerate(training_datasets)):
         train_filename = os.path.join(processed_dir, "train%s.chunk.gz" % i)
         train_dataset.write(train_filename)
     print("%s chunks written" % (i+1))
